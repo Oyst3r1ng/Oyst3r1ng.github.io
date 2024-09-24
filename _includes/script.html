@@ -8,14 +8,32 @@
   ;(function(){
     var textArr = ['我', '爱', '吃', '生', '蚝']
     var index = 0  // 用于追踪当前文字索引
-    function sequentialClickEffect() {
+  
+    function sequentialClickEffect(event) {
+
       var currentText = textArr[index]
-      window.blog.initClickEffect([currentText])
+
+      var span = document.createElement('span')
+      span.textContent = currentText
+      span.style.position = 'absolute'
+      span.style.left = event.pageX + 'px' // 使用点击位置作为文字位置
+      span.style.top = event.pageY + 'px'
+      span.style.fontSize = '20px' // 可以调整字体大小
+      span.style.color = '#4BB596' // 设置字体颜色
+      span.style.whiteSpace = 'nowrap'
+  
+      document.body.appendChild(span)
+
       index = (index + 1) % textArr.length
+
+      setTimeout(function() {
+        span.remove()
+      }, 1000)
     }
+
     document.addEventListener('click', sequentialClickEffect)
   })()
-</script>
+  </script>  
 {% endif %}
 
 {%- if page.layout=="mypost" -%}
