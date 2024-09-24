@@ -1,17 +1,35 @@
 .page-post {
-  font-size: 14px;
+  font-size: 17px;
   line-height: 2;
   word-break: break-all;
 }
 .page-post .title {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: bold;
-  color: #666666;
+  color: #333333;
 }
 .page-post .subtitle {
   font-size: 12px;
   color: #999999;
 }
+
+.page-post .nav {
+  display: flex;
+  border: 1px solid #e0e0e0;
+  padding: 16px;
+  border-radius: 4px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.page-post .nav > div {
+  flex: 1 1 0;
+}
+
+.page-post .nav-next {
+  text-align: right;
+}
+
 .page-post .post > * {
   margin: 18px 0;
 }
@@ -21,10 +39,9 @@
 }
 .page-post .post h1,
 .page-post .post h2 {
-  font-weight: normal;
+  font-weight: bold;
   font-size: 17px;
   position: relative;
-  cursor: pointer;
 }
 .page-post .post h1::before,
 .page-post .post h2::before {
@@ -41,8 +58,8 @@
   font-weight: bold;
 }
 .page-post blockquote {
-  border-left: 3px solid #333333;
-  background-color: #f7f7f7;
+  border-left: 3px solid #e6cc89;
+  background-color: #faeed1;
   padding: 9px 9px 9px 15px;
 }
 
@@ -61,14 +78,11 @@
 .page-post .post ol {
   margin-left: 23px;
 }
-.page-post ul > li {
+.page-post ul li {
   list-style: disc;
 }
-.page-post ol > li {
+.page-post ol li {
   list-style: decimal;
-}
-.page-post li > *{
-  margin: 6px 0;
 }
 .page-post img {
   display: block;
@@ -85,6 +99,7 @@
   margin: 0 4px;
   line-height: 1;
 }
+
 .page-post pre {
   font-size: 0;
   padding: 10px;
@@ -98,26 +113,28 @@
 }
 .page-post code {
   font-size: 13px;
-  background-color: #eeeeee;
+  background-color: #faeed1;
   word-break: break-all;
   padding: 3px 5px;
   margin: 0 4px;
   border-radius: 5px;
   color: #4d4d4c;
+  transition: all 500ms ease;
 }
+
 .page-post pre code {
   font-size: 13px;
   background-color: transparent !important;
   word-break: keep-all;
   padding: 0;
   margin: 0;
-  border-radius: unset;
-  color: inherit;
+  height: 3px;
+  background-color: #eeeeee;
 }
 .page-post hr {
   border: none;
-  height: 3px;
-  background-color: #eeeeee;
+  height: 1px;
+  background-color: #e0e0e0;
 }
 .page-post table {
   min-width: 100%;
@@ -137,7 +154,7 @@
   text-align: left;
 }
 .page-post table tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background-color: #faeed1;
 }
 .page-post .table-container {
   overflow: auto;
