@@ -21,7 +21,7 @@ exclude: ['CNAME', 'README.md', 'LICENSE', '_site', 'dist', 'Gemfile', 'Gemfile.
 # 域名配置
 # baseurl配置,如果网站部署在根目录下的其他目录中，请设置为 /目录名
 domainUrl: 'http://clicking777.top'
-baseurl: ''
+baseurl: 'https://oyst3r1ng.github.io'
 
 # 菜单
 # 必填字段 title: '文本' url: '链接'
