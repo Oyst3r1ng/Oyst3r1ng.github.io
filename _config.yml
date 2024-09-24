@@ -4,7 +4,7 @@ plugins:
   - jekyll-regex-replace
 
 # SEO相关信息
-title: Oyst3r Blog
+title: Oyst3r 's Blog
 description: Oyst3r的个人博客
 keywords: Oyst3r,Blog,Java,Html,JavaScript
 author: Oyst3r
@@ -20,7 +20,7 @@ exclude: ['CNAME', 'README.md', 'LICENSE', '_site', 'dist', 'Gemfile', 'Gemfile.
 
 # 域名配置
 # baseurl配置,如果网站部署在根目录下的其他目录中，请设置为 /目录名
-domainUrl: '/'
+domainUrl: ''
 baseurl: ''
 
 # 吐个槽地址，会在chat页面中重定向到该地址
@@ -37,8 +37,6 @@ menu:
     url: /pages/search.html
   - title: 友链
     url: /pages/links.html
-  - title: 留言
-    url: /pages/chat.html
   - title: 关于
     url: /pages/about.html
 
