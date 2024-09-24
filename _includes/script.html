@@ -5,10 +5,16 @@
 {%- if site.extClickEffect %}
 <!-- 点击页面文字冒出特效 -->
 <script>
-;(function(){
-  var textArr = ['我', '爱', '吃', '生', '蚝']
-  window.blog.initClickEffect(textArr)
-})()
+  ;(function(){
+    var textArr = ['我', '爱', '吃', '生', '蚝']
+    var index = 0  // 用于追踪当前文字索引
+    function sequentialClickEffect() {
+      var currentText = textArr[index]
+      window.blog.initClickEffect([currentText])
+      index = (index + 1) % textArr.length
+    }
+    document.addEventListener('click', sequentialClickEffect)
+  })()
 </script>
 {% endif %}
 
