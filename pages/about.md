@@ -19,7 +19,9 @@ My name 's 生蚝（Oyst3r） 王，哈哈Oyst3r与我姓名谐音，这也是�
 
 4. C or Python or PHP or Java，只是会写Hello World，不精通
 
-5. 等等等
+5. 应急响应砖家
+
+6. 等等等
 
 ## 联系我
 
