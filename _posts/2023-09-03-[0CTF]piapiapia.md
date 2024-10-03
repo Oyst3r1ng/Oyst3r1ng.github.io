@@ -1,9 +1,7 @@
 ---
 layout: mypost
 title: "[0CTF 2016]piapiapia"
-date: "2023-09-03"
-categories: 
-  - "ctf_wp"
+categories: [ctf_wp]
 ---
 
 ## 前言
