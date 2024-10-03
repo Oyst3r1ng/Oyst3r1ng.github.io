@@ -5,7 +5,7 @@ plugins:
 
 # SEO相关信息
 title: Oyst3r 's Blog
-description: Oyst3r的个人博客
+description: Oyst3r 的个人博客
 keywords: Oyst3r,Blog,Java,Html,JavaScript
 author: Oyst3r
 footerText: 'Copyright © 晋ICP备2023018211号-1'
@@ -20,7 +20,7 @@ exclude: ['CNAME', 'README.md', 'LICENSE', '_site', 'dist', 'Gemfile', 'Gemfile.
 
 # 域名配置
 # baseurl配置,如果网站部署在根目录下的其他目录中，请设置为 /目录名
-domainUrl: 'http://clicking777.top'
+domainUrl: 'https://clicking777.top'
 baseurl: ''
 
 # 菜单
