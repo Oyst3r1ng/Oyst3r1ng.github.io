@@ -47,7 +47,7 @@ markdown:
     langPrefix: language-
     linkify: true
     typographer: true
-    quotes: ""''
+    quotes: '""'''''
 
 # 点击页面文字冒出特效,不需要请设置为false
 extClickEffect: false
