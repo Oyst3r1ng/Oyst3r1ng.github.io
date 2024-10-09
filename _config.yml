@@ -37,10 +37,17 @@ menu:
     url: /pages/links.html
   - title: 关于
     url: /pages/about.html
-    
+
 # hexo-renderer-marked插件配置
-marked:
-  smartypants: false
+markdown:
+  render:
+    html: true
+    xhtmlOut: false
+    breaks: true
+    langPrefix: language-
+    linkify: true
+    typographer: true
+    quotes: ""''
 
 # 点击页面文字冒出特效,不需要请设置为false
 extClickEffect: false
