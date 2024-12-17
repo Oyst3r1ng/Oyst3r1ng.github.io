@@ -13,11 +13,11 @@ My name 's 生蚝（Oyst3r） 王，哈哈 Oyst3r 与我姓名谐音，这也是
 
 1. Yakit 教主&古希腊掌管 Burp 的神&漏洞挖掘机
 
-2. CTF 中的 Web 兼职 Re 手，大型比赛靠 Misc 得分哈哈
+2. CTF 中的 Web 兼职 Re 手，超级 love 流量分析相关的题目
 
-3. 被我遗失的免杀能力
+3. 还在线的免杀能力
 
-4. C or Python or PHP or Java，只是会写 Hello World，不精通
+4. C or Python or PHP or Java，额外喜欢Java
 
 5. 应急响应砖家
 
