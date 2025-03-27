@@ -1,3 +1,10 @@
+.highlight pre {
+  font-size: 16px;  /* 设置代码块的字体大小 */
+  border-radius: 8px;  /* 圆角效果 */
+  border: 1px solid #ddd;  /* 边框 */
+  padding: 10px;  /* 内边距 */
+  background-color: #f5f5f5;  /* 背景颜色 */
+}
 .highlight table td {
   padding: 5px;
 }
