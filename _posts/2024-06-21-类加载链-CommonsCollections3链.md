@@ -6,7 +6,7 @@ categories: [Java安全]
 
 ## 前言
 
-能将ClassLoader#defineClass与CC链相结合写出的Payload其实已经很接近CommonsCollections3链了，但是去翻看ysoserial中CommonsCollections3的源码，发现还是有所不同的，如下-->
+能将 ClassLoader#defineClass 与 CC 链相结合写出的 Payload 其实已经很接近 CommonsCollections3 链了，但是去翻看 ysoserial 中 CommonsCollections3 的源码，发现还是有所不同的，如下-->
 
 ![alt text](1.png)
 
@@ -14,7 +14,7 @@ categories: [Java安全]
 
 ## 老知识
 
-将利用TemplatesImpl类把ClassLoader#defineClass与CC1链结合的Payload美化后，粘一下，不啰嗦了-->
+将利用 TemplatesImpl 类把 ClassLoader#defineClass 与 CC1 链结合的 Payload 美化后，粘一下，不啰嗦了-->
 
 ```java
 import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
@@ -77,47 +77,47 @@ public class CC1ClassLoader {
 }
 ```
 
-执行代码成功触发DNS请求，如下-->
+执行代码成功触发 DNS 请求，如下-->
 
 ![alt text](7.png)
 
-大白话一点就是用InvokerTransformer去实现了加载字节码的功能，例如现在有这样一种情况：服务端的防护代码将Runtime类过滤掉了，那么如上的Payload就是一个很好的解决方案，那如果开发人员将InvokerTransformer类给过滤掉呢？历史上还真就有这样的事情发生。
+大白话一点就是用 InvokerTransformer 去实现了加载字节码的功能，例如现在有这样一种情况：服务端的防护代码将 Runtime 类过滤掉了，那么如上的 Payload 就是一个很好的解决方案，那如果开发人员将 InvokerTransformer 类给过滤掉呢？历史上还真就有这样的事情发生。
 
 ## 历史背景
 
-> 这一段内容完全粘贴自P神的文章
+> 这一段内容完全粘贴自 P 神的文章
 
-2015年初，@frohoff和@gebl发布了[Marshalling Pickles: how deserializing objects will ruin
-your day](https://frohoff.github.io/appseccali-marshalling-pickles/)，以及Java反序列化利⽤⼯具ysoserial，随后引爆了安全界。开发者们⾃然会去找寻⼀种安全的过滤⽅法，于是类似SerialKiller这样的⼯具随之诞⽣。
+2015 年初，@frohoff 和@gebl 发布了[Marshalling Pickles: how deserializing objects will ruin
+your day](https://frohoff.github.io/appseccali-marshalling-pickles/)，以及 Java 反序列化利⽤⼯具 ysoserial，随后引爆了安全界。开发者们⾃然会去找寻⼀种安全的过滤⽅法，于是类似 SerialKiller 这样的⼯具随之诞⽣。
 
-[SerialKiller](https://github.com/ikkisoft/SerialKiller)是⼀个Java反序列化过滤器，可以通过⿊名单与⽩名单的⽅式来限制反序列化时允许通过的类。在其发布的第⼀个版本代码中，可以看到其给出了最初的[黑名单](https://github.com/ikkisoft/SerialKiller/blob/998c0abc5b/config/serialkiller.conf)
+[SerialKiller](https://github.com/ikkisoft/SerialKiller)是⼀个 Java 反序列化过滤器，可以通过⿊名单与⽩名单的⽅式来限制反序列化时允许通过的类。在其发布的第⼀个版本代码中，可以看到其给出了最初的[黑名单](https://github.com/ikkisoft/SerialKiller/blob/998c0abc5b/config/serialkiller.conf)
 
 ![alt text](2.png)
 
-这个⿊名单中InvokerTransformer赫然在列，也就切断了CommonsCollections1的利⽤链，随后增加了不少新的Gadgets，其中就包括CommonsCollections3链。
+这个⿊名单中 InvokerTransformer 赫然在列，也就切断了 CommonsCollections1 的利⽤链，随后增加了不少新的 Gadgets，其中就包括 CommonsCollections3 链。
 
-所以CC3链出现的原因是InvokerTransformer类被过滤掉了！
+所以 CC3 链出现的原因是 InvokerTransformer 类被过滤掉了！
 
-## 调CommonsCollections3链
+## 调 CommonsCollections3 链
 
-不管是CC1还是CC6，都是将InvokerTransformer当成了sink，包括CC1加载字节码、CC6加载字节码，其实也是将InvokerTransformer当成了sink，都是将invoke的功能扩大（命令执行、加载恶意字节码）。何尝不可以将defineClass方法直接当成sink呢？下面是TemplatesImpl类从newTransformer()到defineClass()的调用链-->
+不管是 CC1 还是 CC6，都是将 InvokerTransformer 当成了 sink，包括 CC1 加载字节码、CC6 加载字节码，其实也是将 InvokerTransformer 当成了 sink，都是将 invoke 的功能扩大（命令执行、加载恶意字节码）。何尝不可以将 defineClass 方法直接当成 sink 呢？下面是 TemplatesImpl 类从 newTransformer()到 defineClass()的调用链-->
 
 ```
 TemplatesImpl#newTransformer() ->
-    TemplatesImpl#getTransletInstance() -> 
-        TemplatesImpl#defineTransletClasses() -> 
+    TemplatesImpl#getTransletInstance() ->
+        TemplatesImpl#defineTransletClasses() ->
             TransletClassLoader#defineClass()
 ```
 
-可以看出只要执行TemplatesImpl类的newTransformer()即可完成字节码加载，不一定非要用`new InvokerTransformer("newTransformer",null,null)`这种方式，看一下newTransformer方法的调用情况-->
+可以看出只要执行 TemplatesImpl 类的 newTransformer()即可完成字节码加载，不一定非要用`new InvokerTransformer("newTransformer",null,null)`这种方式，看一下 newTransformer 方法的调用情况-->
 
 ![alt text](3.png)
 
-总共有五处调用，其中CC3的作者用到的是TrAXFilter类的构造函数，如下-->
+总共有五处调用，其中 CC3 的作者用到的是 TrAXFilter 类的构造函数，如下-->
 
 ![alt text](4.png)
 
-现在只要调用了TrAXFilter类的构造函数，就可以触发字节码加载，写个demo验证一下-->
+现在只要调用了 TrAXFilter 类的构造函数，就可以触发字节码加载，写个 demo 验证一下-->
 
 ```java
 import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
@@ -143,17 +143,17 @@ public class CommonsCollections3  {
 }
 ```
 
-执行代码成功触发DNS请求，如下-->
+执行代码成功触发 DNS 请求，如下-->
 
 ![alt text](7.png)
 
-而现在不能用InvokerTransformer去执行`new TrAXFilter(templatesImpl);`这行代码，这⾥会⽤到⼀个新的
-Transformer类-->`org.apache.commons.collections.functors.InstantiateTransformer`。
-它的transform方法的作⽤就是以反射的形式调⽤构造⽅法。
+而现在不能用 InvokerTransformer 去执行`new TrAXFilter(templatesImpl);`这行代码，这⾥会⽤到⼀个新的
+Transformer 类-->`org.apache.commons.collections.functors.InstantiateTransformer`。
+它的 transform 方法的作⽤就是以反射的形式调⽤构造⽅法。
 
 ![alt text](5.png)
 
-现在将上面的demo改成InstantiateTransformer的写法，如下-->
+现在将上面的 demo 改成 InstantiateTransformer 的写法，如下-->
 
 ```java
 import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
@@ -182,17 +182,17 @@ public class CommonsCollections3  {
 }
 ```
 
-执行代码成功触发DNS请求，如下-->
+执行代码成功触发 DNS 请求，如下-->
 
 ![alt text](7.png)
 
-Tips：TrAXFilter类其实是没有继承Serializable接口的-->
+Tips：TrAXFilter 类其实是没有继承 Serializable 接口的-->
 
 ![alt text](6.png)
 
-但instantiateTransformer的transform方法是反射调用了构造器-->`Constructor con = ((Class) input).getConstructor(iParamTypes);`，只需要给transform方法的参数传一个Class 对象即可。这一点无形之中解决了TrAXFilter类无法被序列化的问题。
+但 instantiateTransformer 的 transform 方法是反射调用了构造器-->`Constructor con = ((Class) input).getConstructor(iParamTypes);`，只需要给 transform 方法的参数传一个 Class 对象即可。这一点无形之中解决了 TrAXFilter 类无法被序列化的问题。
 
-接下来将CC1、CC6链的EntryClass以及一部分Gadget与上面demo结合起来，将代码美化一下即可得到CommonsCollections3链，如下（这里拿CC6举例，它不依赖于JDK版本）-->
+接下来将 CC1、CC6 链的 EntryClass 以及一部分 Gadget 与上面 demo 结合起来，将代码美化一下即可得到 CommonsCollections3 链，如下（这里拿 CC6 举例，它不依赖于 JDK 版本）-->
 
 ```java
 import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
@@ -264,8 +264,8 @@ public class CommonsCollections3  {
 }
 ```
 
-执行代码成功触发DNS请求，如下-->
+执行代码成功触发 DNS 请求，如下-->
 
 ![alt text](7.png)
 
-至此，CommonsCollections3链从0到1结束。
+至此，CommonsCollections3 链从 0 到 1 结束。
