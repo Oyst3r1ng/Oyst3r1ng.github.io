@@ -16,7 +16,7 @@ layout: null
     <item>
       <title>{{post.title | escape}}</title>
       <link>{{site.domainUrl | append: site.baseurl | append: post.url}}</link>
-      <description>{{post.content | strip_html | strip_newlines | replace: " ", "" | replace: "	", "" | truncate: 120 | escape}}</description>
+      <description>{{ post.content | strip_html | strip_newlines | xml_escape | truncate: 120 }}</description>
       <pubDate>{{post.date | date_to_rfc822}}</pubDate>
       <gui>{{site.domainUrl | append: site.baseurl | append: post.url}}</gui>
     </item>

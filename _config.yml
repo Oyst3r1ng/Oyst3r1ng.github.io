@@ -8,7 +8,6 @@ title: Oyst3r 's Blog
 description: Oyst3r 的个人博客
 keywords: Oyst3r,Blog,Java,Html,JavaScript
 author: Oyst3r
-footerText: 'Copyright © 晋ICP备2023018211号-1'
 
 # 这些不要动
 permalink: /posts/:year/:month/:day/:title.html
