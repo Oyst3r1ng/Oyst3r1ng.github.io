@@ -664,3 +664,13 @@ Closing connection
 ![alt text](20.png)
 
 关于攻击客户端的手法到此结束。文章也到此结束，关于 JEP290 的绕过、RMI 衍生出的 Gadgets 打二次反序列化等等之后有时间再更吧！
+
+参考自：
+
+[Java 中 RMI、JNDI、LDAP、JRMP、JMX、JMS那些事儿（上）](https://paper.seebug.org/1091/)
+
+[RMI反序列化漏洞之三顾茅庐-攻击实现](https://halfblue.github.io/2021/11/02/RMI%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E4%B9%8B%E4%B8%89%E9%A1%BE%E8%8C%85%E5%BA%90-%E6%94%BB%E5%87%BB%E5%AE%9E%E7%8E%B0/)
+
+[基于Java反序列化RCE - 搞懂RMI、JRMP、JNDI](https://xz.aliyun.com/t/7079)
+
+[Java安全学习——利用RMI进行攻击](https://goodapple.top/archives/520)
