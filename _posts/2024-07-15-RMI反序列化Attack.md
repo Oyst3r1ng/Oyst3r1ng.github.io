@@ -10,24 +10,15 @@ categories: [Java安全]
 
 ```
 1.攻击客户端：
-
-注册中心攻击客户端 RegistryImpl_Stub.lookup(xxx)
-
-DGC攻击客户端 DGCImpl_Stub.dirty(xxx)
-
-服务端攻击客户端 UnicastRef.invoke(xxx)
-
-注册中心/服务端/DGC各一个 StreamRemoteCall.executeCall(xxx)
-
+- 注册中心攻击客户端 RegistryImpl_Stub.lookup(xxx)
+- DGC攻击客户端 DGCImpl_Stub.dirty(xxx)
+- 服务端攻击客户端 UnicastRef.invoke(xxx)
+- 注册中心/服务端/DGC各一个 StreamRemoteCall.executeCall(xxx)
 2.攻击注册中心：
-
-客户端攻击注册中心 RegistryImpl_Skel.dispatch(xxx)
-
+- 客户端攻击注册中心 RegistryImpl_Skel.dispatch(xxx)
 3.攻击服务端：
-
-客户端攻击服务端 UnicastServerRef.dispatch(xxx)
-
-DGC攻击服务端 DGCImpl_Skel.dispatch(xxx)
+- 客户端攻击服务端 UnicastServerRef.dispatch(xxx)
+- DGC攻击服务端 DGCImpl_Skel.dispatch(xxx)
 ```
 
 理论上将这三部分都是可以被攻击的，开始实践。
