@@ -1,6 +1,6 @@
 ---
 layout: mypost
-title: "RMI反序列化Attack"
+title: "RMI 反序列化 Attack"
 categories: [Java安全]
 ---
 
@@ -624,10 +624,12 @@ public class DGCAttackServer {
 
 ![alt text](20.png)
 
-翻看 Ysoserial 中 ysoserial.exploit.JRMPClient 的实现是同一个思路，都使用 DGC 进行攻击，但原理还是有所不同。它的原理：
+翻看 Ysoserial 中 ysoserial.exploit.JRMPClient 的实现是同一个思路，都使用 DGC 进行攻击，但原理还是有所不同。
+
+它的原理：
 由于 Server 端与 Registry 端一般是在同一台机器，则使用 DGC 去攻击了 Registry 端监听端口，这么看马马虎虎算是一个对 Registry 端的攻击。换汤不换药，相当于给 ysoserial.exploit.RMIRegistryExploit 这种攻击方式从 RegistryImpl_Stub 换成了 DGCImpl_Stub。为什么可以这样？给出解释如下-->
 
-DGC 通信和 RMI 通信在 Transport 层使用相同的处理逻辑，只是通过客户端写入的标记区分处理逻辑（如 RegistryImpl_Skel 或 DGCImpl_Skel），即 DGC 攻击可以泛化到任意 JRMP 协议端口（Registry 端监听端口、DGC 端监听端口、RegistryImpl_Stub 监听端口、DGCImpl_Stub 监听端口），没有写与 Server 端相关的监听端口，是因为它的 Stub 实现方式为动态代理实现，而不是重新实例化类，即无法被攻击。
+DGC 通信和 RMI 通信在 Transport 层使用相同的处理逻辑，只是通过客户端写入的标记区分处理逻辑（如 RegistryImpl_Skel 或 DGCImpl_Skel），即 DGC 攻击可以泛化到任意 JRMP 协议端口（Registry 端监听端口、DGC 端监听端口、RegistryImpl_Stub 监听端口、DGCImpl_Stub 监听端口、以及 Server 端相关的监听端口）。
 
 挺简单的，这里直接用 Ysoserial 打了-->
 
