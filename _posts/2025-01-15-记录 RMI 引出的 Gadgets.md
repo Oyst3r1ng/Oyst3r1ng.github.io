@@ -14,19 +14,19 @@ categories: [Java安全]
 
 既然是去新开启了一个 RMI 的 Server 端，也就是对应着之前文章中看到的这一行代码：`HelloRemoteObject helloRemoteObject = new HelloRemoteObject();`，其中具体每一步的实现早就跟过了，这里不在赘述，将里面最关键的一个断点记录如下-->
 
-![alt text](image-399.png)
+![](image-399.png)
 
 从上图的代码往后开始，就是一路到 UnicastServerRef 类的 exportObject 方法、创建 stub（ServerStubs）、启动 socket、发布 Target等一套标准的创建 Server 端的流程。那就从上图中的代码再向上跟，看看是否可以跟到一个 readObject，一层一层去查看它的方法调用-->
 
-![alt text](image-400.png)
+![](image-400.png)
 
 然后再看`public static Remote exportObject(Remote obj, int port)`的方法调用-->
 
-![alt text](image-401.png)
+![](image-401.png)
 
 再看`private void reexport() throws RemoteException`的方法调用-->
 
-![alt text](image-402.png)
+![](image-402.png)
 
 最后成功的跟到了一处 readObject，整条链子就已经 END 了，其实只需要反射去调用 UnicastRemoteObject 类的构造方法这一步即可，去写一个 Demo 如下-->
 
@@ -65,15 +65,15 @@ public class JRMPListenerPayload {
 
 切换到 JDK 8u65 这样一个低版本后运行（因为高版本在 RegistryImpl 类和 DGCImpl 类中加入了过滤机制，也就是 JEP 290，会导致攻击失败），成功在本地开启了 9999 端口，如下-->
 
-![alt text](image-403.png)
+![](image-403.png)
 
 后续使用 ysoserial.exploit.JRMPClient 这个 Payload 尝试攻击此端口-->
 
-![alt text](image-404.png)
+![](image-404.png)
 
 成功触发 DNS 请求，如下-->
 
-![alt text](image-394.png)
+![](image-394.png)
 
 这个链⛓️‍💥其实就是 Ysoserial 中 ysoserial.payloads.JRMPListener 这个 gadget，可以结合 ysoserial.exploit.JRMPClient 这个 Payload 去发起攻击。它在某些情况下是可以规避一些黑名单的限制，绕过 WAF、IDS等。
 
@@ -83,27 +83,27 @@ public class JRMPListenerPayload {
 
 既然是要去伪造一个 Client 端，那肯定就是要去找创建 Stub 相关的逻辑，然后一层层向上跟，看看有没有能到 readObject 的，其实和上面第一条 Gadget 都是一个挖掘逻辑。这里 Ysoserial 的作者选择了去看 DGCImpl_Stub，Sink 是选择了它的 dirty 方法，如下-->
 
-![alt text](image-405.png)
+![](image-405.png)
 
 那好，查看它的方法调用，只有一处-->
 
-![alt text](image-406.png)
+![](image-406.png)
 
 再去跟`private void makeDirtyCall(Set<RefEntry> refEntries, long sequenceNum)`的方法调用，如下-->
 
-![alt text](image-407.png)
+![](image-407.png)
 
 有两处调用，其中下面那处顾名思义是清理后台线程相关的代码，不关注，选择上面`public boolean registerRefs(List<LiveRef> refs)`这一处代码继续向上跟-->
 
-![alt text](image-408.png)
+![](image-408.png)
 
 也是只有一处去调用，那么再去跟`static void registerRefs(Endpoint ep, List<LiveRef> refs)`的方法调用，如下-->
 
-![alt text](image-409.png)
+![](image-409.png)
 
 一共有两处调用，记得组长是走的第一处，而 Ysoserial 的作者是走的第二处，跟一下第二处`public static LiveRef read(ObjectInput in, boolean useNewFormat)`的方法调用情况-->
 
-![alt text](image-410.png)
+![](image-410.png)
 
 成功的走到了 readExternal！sun.rmi.server.UnicastRef 类实现了 Externalizable 接口，因此在其反序列化时，会调用其 readExternal 方法执行额外的逻辑。
 
@@ -207,11 +207,11 @@ public class JRMPClientPayload {
 
 接着去伪造一个 Server 端，直接用 Ysoserial 中 ysoserial.exploit.JRMPListener 这个 Payload 就好，之前记录过，这里不再赘述。开启后，运行上面的 Demo，1099 端口成功收到请求如下-->
 
-![alt text](image-412.png)
+![](image-412.png)
 
 此时也成功触发 DNS 请求，如下-->
 
-![alt text](image-394.png)
+![](image-394.png)
 
 这第二条链其实就是 Ysoserial 中 ysoserial.payloads.JRMPClient 这个 gadget，可以结合 ysoserial.exploit.JRMPListener 这个 Payload 去发起攻击。是很重要的一条链，不管是之后的 Bypass JEP 290 还是 Shiro 的二次反序列化等场景都会见到它的身影。
 

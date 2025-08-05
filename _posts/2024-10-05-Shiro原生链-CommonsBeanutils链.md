@@ -119,15 +119,15 @@ main:10, Main
 
 可以看出是反射调用了 getName 方法-->
 
-![alt text](image-341.png)
+![](image-341.png)
 
-![alt text](image-342.png)
+![](image-342.png)
 
 得出结论：调用`String name = (String) PropertyUtils.getProperty(person, "name");`相当于调用了`person.getName();`。
 
 回到刚刚的 Sink 处，将`templatesImpl.newTransformer();`向前跟一点，看它的方法调用情况，如下-->
 
-![alt text](image-343.png)
+![](image-343.png)
 
 其中存在一个 getOutputProperties 方法，且是 public 的。将 payload 向前写一点，如下-->
 
@@ -156,11 +156,11 @@ public class CommonsBeanutils  {
 
 同样成功触发 DNS 请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 结合前面的结论，不难得出，链要继续向前走，可以在 commons-beanutils 库中寻找合适的`PropertyUtils.getProperty()`即可（合适指的是 getProperty 方法中参数可控），在如下位置找到了合适的方法-->
 
-![alt text](image-344.png)
+![](image-344.png)
 
 其中 o1、o2、property 三个变量均可控，将代码继续向前写一点，如下-->
 
@@ -192,7 +192,7 @@ public class CommonsBeanutils  {
 
 运行成功触发 DNS 请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 ## 结合 CC4 构造
 
@@ -256,7 +256,7 @@ public class CommonsBeanutils  {
 
 执行后，成功触发 DNS 请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 ## 问题 & 解决方案
 
@@ -278,33 +278,33 @@ Caused by: java.lang.ClassNotFoundException: org.apache.commons.collections.comp
 
 其实 commons-beanutils 原本就要依赖 commons-collections，在 Shiro 中内置的 commons-beanutils 版本包含了它所要用到的 commons-collections 依赖中的部分类，如下-->
 
-![alt text](image-345.png)
+![](image-345.png)
 
 但只包含了 collections 的部分类，并不完整。这就导致：正常使用 Shiro 时不需要额外引入 commons-collections，但如果要利用反序列化漏洞，比如用到 BeanComparator，理论上就要手动引入完整的 commons-collections 依赖。这么看，要想利用 Shiro 反序列化漏洞， commons-collections 这个依赖是必不可少的，有没有绕过方案呢？答案是有的。
 
 首先观察为什么要使用到 ComparableComparator 这个类？是在下图中的位置-->
 
-![alt text](image-346.png)
+![](image-346.png)
 
 嗯嗯没错，是 BeanComparator 的构造方法中使用到了，对应 payload 中的`BeanComparator beanComparator = new BeanComparator("outputProperties");`这一行代码。
 
 好在 BeanComparator 这个类中还有另一个构造方法，如下-->
 
-![alt text](image-347.png)
+![](image-347.png)
 
 提前构造好 ComparableComparator 类的实例，然后再调用 BeanComparator 的构造方法即可。跟一下`ComparableComparator.getInstance()`这一行代码都做了哪些事情，如下-->
 
-![alt text](image-348.png)
+![](image-348.png)
 
-![alt text](image-349.png)
+![](image-349.png)
 
-![alt text](image-350.png)
+![](image-350.png)
 
-![alt text](image-351.png)
+![](image-351.png)
 
 而它的父类即是 Object，如下-->
 
-![alt text](image-352.png)
+![](image-352.png)
 
 既然不能用 ComparableComparator ，那就找到一个类来替换，显然它要满足下面这几个条件便可以：
 
@@ -314,7 +314,7 @@ Caused by: java.lang.ClassNotFoundException: org.apache.commons.collections.comp
 
 最终 CommonsBeanutils 链的作者找到 CaseInsensitiveComparator 这个类，如下-->
 
-![alt text](image-353.png)
+![](image-353.png)
 
 那么绕过 commons-collections 依赖的限制，换一个构造函数即可，挺简单的不啰嗦了，给出 payload 如下-->
 
@@ -376,6 +376,6 @@ public class CommonsBeanutils  {
 
 执行后，成功触发 DNS 请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 至此，成功构造出一条无需额外依赖的 Shiro 反序列化利用链-->CommonsBeanutils 链。

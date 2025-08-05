@@ -18,7 +18,7 @@ Apache Commons Collections 是 Apache Commons 项目的一部分，专注于提�
 
 在组长视频里看到个不错的流程图，算是对反序列化漏洞的原理做了一个宏观上的梳理，既然这是 CC 链的开篇，那就重新画一遍粘在这里吧。
 
-![alt text](image-43.png)
+![](image-43.png)
 
 图是从前向后画的，构造的话应该是从后往前一步步找的，这里的 Gadget 只是写了三个，可能比三个多也可能比三个少，这里最想记录的一点是：通过流程图可以直观的看到 Entrance class 和 Gadget 中的类其实没什么两样的，唯一多出来的就是重写了这个 readObject 方法，且在方法中调用了同名函数，但这也是最核心的、最重要的、最难找的。
 
@@ -112,19 +112,19 @@ public class Example {
 
 不难看出 xxxTransformer 就代表了实现某一项功能的类，功能真正的实现代码在 transform()这个函数中，比如 keyTransformer 就代表了将 key 全部转换为大写，valueTransformer 就代表了将 value 全部加 10（这里没有去新建类去实现接口，就是）。可以看到 transform()是重写了 Transformer 接口中的 transform()方法。
 
-![alt text](image-44.png)
+![](image-44.png)
 
-![alt text](image-45.png)
+![](image-45.png)
 
 而且当执行完`Map<String, Integer> outerMap = TransformedMap.decorate(innerMap, keyTransformer, valueTransformer);`之后在 put 新的键值对是自动去调用了 xxxTransformer()中的 transform()方法，大白话一点就是弓已经拉好了，把箭搭上去即可发射。
 
 言归正传，通过上面三段思考，去找这些个功能类中有无能造成危害的、可能被利用的地方就是去找实现 Transformer 接口的类中的 transform()方法，不班门弄斧的去找了，最后就是在 InvokerTransformer 类中找到了。
 
-![alt text](image-46.png)
+![](image-46.png)
 
 它的 transform()方法如下-->
 
-![alt text](image-47.png)
+![](image-47.png)
 
 不陌生，一个标准的反射写法，但这里可以调用执行任意类的任意方法，也就是 RCE，类是 public 的，构造函数是 public 的，写个触发 sink 的代码如下-->
 
@@ -144,7 +144,7 @@ public class Example {
 
 本意是好的，相当于给 invoke 做了一层封装，开发人员只用关注传参即可。有利有弊吧，直接打一个 DNS，结果如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 ## 插曲-洞悉概念
 
@@ -248,19 +248,19 @@ Hello World
 
 复杂的概念弄清楚，接下来去找不同类的同名函数，一共 23 处
 
-![alt text](image-49.png)
+![](image-49.png)
 
 1.初顾茅庐，找到了下面这处地方
 
-![alt text](image-50.png)
+![](image-50.png)
 
 其中的 valueTransformer 不是一个常量，是从 TransformedMap 类的构造函数里来的
 
-![alt text](image-51.png)
+![](image-51.png)
 
 而构造函数是 protected 类型的，是在下面这里调用了构造函数
 
-![alt text](image-52.png)
+![](image-52.png)
 
 OK，现在这个 valueTransformer 是可控的了，参数类型虽然不是 Object，是 Transformer 类型的，足够用了，只需要将 TransformedMap.decorate(map,key,value)中的 value 给换成 invokerTransformer 即可，代码如下-->
 
@@ -287,9 +287,9 @@ public class Example {
 
 2.接下来，看`valueTransformer.transform(object);`中的 object，它是从 transformValue 这个函数的参数来的，要控制参数那就要找同名函数（可以是同类也可以是不同类），而接下来找链子，最好是要去找不同类但是与 transformValue 同名的函数，不管是为了找参数的输入点还是为了继续找链子，都是得先去找同名函数，也巧，除了它自身以外就只有两个同名函数，且都是是在同一类中，看看这个 put。
 
-![alt text](image-53.png)
+![](image-53.png)
 
-![alt text](image-54.png)
+![](image-54.png)
 
 这个 put 是重写了 Map 类的 put 方法，只要调用 TransformedMap 类的实例的 put 方法，就会自动调用 transformValue 这个函数，而 transformValue 这个函数的参数就是 object，所以 object 就是可控的了。
 
@@ -317,13 +317,13 @@ public class Example {
 
 结果如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 接下来就是去找哪里又调用了 put，这个可就多了，大概有 10490 处调用了......这里是初顾茅庐，找到了一个这样的，至于后面有没有成功的链子，目前未知，谁都不敢保证这么走后面就没有一条成功的链子。
 
 当然 CC1 最后走的不是这里，CC1 从一开始找 transform 的同名函数时候，并不是找的 transformValue 这个方法，而是下面这里
 
-![alt text](image-55.png)
+![](image-55.png)
 
 4.初顾茅庐链子就到这里，将初顾茅庐的链子，结合洞悉概念时候提及的几个方法相结合，美化一下代码，如下-->
 
@@ -355,7 +355,7 @@ public class Example {
 
 结果如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 ## 再探茅庐
 
@@ -369,33 +369,33 @@ protected Object checkSetValue(Object value) {
 
 这个 valueTransformer 的赋值并没有变，还是这一段代码`Map<Object,Object> transformedMap = TransformedMap.decorate(map,null,chainedTransformer);`接下来就去找谁调用了 checkSetValue 这个函数，很巧，只有一处调用了
 
-![alt text](image-56.png)
+![](image-56.png)
 
 这里迷住了，这个 parent 是从何而来？能不能被控制？这里就一步步向上跟代码，AbstractInputCheckedMapDecorator 类中从下往上是这样的-->
 
 第 188 行：
 
-![alt text](image-58.png)
+![](image-58.png)
 
 第 174 行：
 
-![alt text](image-59.png)
+![](image-59.png)
 
 第 169 行：
 
-![alt text](image-60.png)
+![](image-60.png)
 
 第 122 行：
 
-![alt text](image-61.png)
+![](image-61.png)
 
 第 118 行：
 
-![alt text](image-62.png)
+![](image-62.png)
 
 第 101 行：
 
-![alt text](image-63.png)
+![](image-63.png)
 
 发现最后是一个 entrySet 方法的 this，也就是哪个实例去调用了 entrySet 方法，那么这个 this 就是这个实例。而这个 entrySet 是似曾相识的，在 for 循环处理 Map 见到过，举个例子-->
 
@@ -451,7 +451,7 @@ public class Example {
 
 在最后一行下断点一步步调试，发现运行到下图位置就结束了-->
 
-![alt text](image-64.png)
+![](image-64.png)
 
 也就是去实例化了一个内部类，想要继续执行还要继续走 iterator 方法、next 方法，这就是 for 循环干的了，再改一下上面的代码如下-->
 
@@ -486,7 +486,7 @@ public class Example {
 
 此时下断点再调试，发现此时的 parent 已经被赋值了，且值为 transformedMap，如下图-->
 
-![alt text](image-65.png)
+![](image-65.png)
 
 最后直接去调用 setValue 方法，由于 transformedMap 没有重写则直接调用父类的，即可触发`parent.checkSetValue(value)`也就是`transformedMap.checkSetValue(value)`即可触发`valueTransformer.transform(value)`也就是`chainedTransformer.transform(value)`而 value 虽然等于 null，但是还有`ConstantTransformer(Runtime.getRuntime())`，最后执行`InvokerTransformer(methodName, paramTypes, argsForConstructor)`，再探茅庐的完整代码如下-->
 
@@ -521,13 +521,13 @@ public class Example {
 
 执行后的结果如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 ## 三顾茅庐
 
 走到这里了，去找有无在 readObject 方法中调用了 setValue 方法的类，不班门弄斧了，就是 AnnotationInvocationHandler 这个类-->
 
-![alt text](image-66.png)
+![](image-66.png)
 
 且可以看到它的这行代码`for (Map.Entry<String, Object> memberValue : memberValues.entrySet())`已经实现了一个 for 循环，意味着只用让 memberValues 等于 transformedMap 即可，而 memberValues 可从该类的构造函数来，很美的一条链子。这个类不是 public 的，反射构造一下即可，代码如下-->
 
@@ -620,11 +620,11 @@ public class Example {
 
 1.针对第一个问题，是因为 Runtime 类没有继承 Serializable 接口，所以不能序列化
 
-![alt text](image-67.png)
+![](image-67.png)
 
 它没有去继承 Serializable 接口，但是在生成 Payload 的时候`new ConstantTransformer(Runtime.getRuntime())`这行代码就已经实例化了一个 Runtime 的对象，这种其实也是书写反序列化漏洞的习惯，大家习惯都先 new 出实例，然后去序列化，反序列化得到的就是实例，然后链子构造好，一条龙的执行即可。但是现在既然 Runtime 类不能序列化，而又想在反序列化的时候得到一个实例，那么就会想到反射，只需要在序列化的时候去序列化一个 Runtime 的 Class 对象即可，有 Class 对象就有办法去反射出 Runtime 的实例，而 Class 类是继承了 Serializable 接口的，所以可以序列化。
 
-![alt text](image-68.png)
+![](image-68.png)
 
 反射代码如下-->
 
@@ -680,11 +680,11 @@ public class Example {
 
 可以成功触发 DNS 请求，如下图-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 Tips：小插曲，可能会觉得 transformers 里面放三个 InvokerTransformer 有点奇怪，为什么不直接去获取 getRuntime 方法？根本原因还是在 InvokerTransformer 的 transform 方法中`Class cls = input.getClass();`这里。
 
-![alt text](image-69.png)
+![](image-69.png)
 
 若改成直接去获取 getRuntime 方法的写法，也就是下面这样-->
 
@@ -708,7 +708,7 @@ Transformer[] transformers = new Transformer[]{
 
 下断点调试会发现此时的 cls 是等于`java.lang.Class`的，在对 Class 类去找 getRuntime 方法绝对是找不到的，所以要分开两步走，先通过 getMethod 去找到 getRuntime，再调用 invoke 方法去调用 getRuntime 方法，拿到实例。
 
-![alt text](image-70.png)
+![](image-70.png)
 
 目前，加上序列化和反序列化的代码如下-->
 
@@ -776,19 +776,19 @@ public class Example {
 
 2.if 判断的问题，在 readObject 方法那里下断点查看-->
 
-![alt text](image-71.png)
+![](image-71.png)
 
 第一个 if 判断就没进去，要想使`memberType != null`那么就得使 memberTypes 中存在一个叫 name 的值，而 name 的值是可以控制的，就是上述 Payload 中`map.put(null,null);`它的 key 值，而 memberTypes 的来龙去脉如下
 
-![alt text](image-72.png)
+![](image-72.png)
 
 就是上述 Payload 中`Object instance = constructor.newInstance(xxx.class, transformedMap);`的 xxx.class，这个 xxx.class 还必须是个注解类型，就是要找一个有抽象方法的注解类型的类，找到一个类如下-->
 
-![alt text](image-73.png)
+![](image-73.png)
 
 所以把 xxx.class 改成 Retention.class，`map.put(null,null);`中的 key 改成 value 即可，而第二个 if 的意思是，如果 value 既不是 memberType 类型的实例，也不是 ExceptionProxy 类型的实例，这里显然不是的，那第二个 if 也可以进去。还有`map.put(null,null);`中的 key 不仅要等于 value，且 value 也不能为 null，否则会报错，报错如下-->
 
-![alt text](image-74.png)
+![](image-74.png)
 
 应修改为`map.put("value","xxx");`至此 CC1 的完整 Poc 书写完毕，代码如下-->
 
@@ -855,6 +855,6 @@ public class CC1 {
 
 DNS 平台成功收到请求，如下图-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 三顾茅庐，CC1 从 0 到 1 完毕！

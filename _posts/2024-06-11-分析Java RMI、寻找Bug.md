@@ -100,7 +100,7 @@ Hello xxx
 
 RMI 实现过程还是蛮复杂，做了一张图，如下-->
 
-![alt text](image.png)
+![](image.png)
 
 大致分了 12 点，接下来与代码处对应一下。
 
@@ -127,47 +127,47 @@ RMI 实现过程还是蛮复杂，做了一张图，如下-->
 
 开始调试，HelloRemoteObject 类是自己写的实现类，它的构造函数是没什么代码逻辑的，主要把聚焦点放在它父类 UnicastRemoteObject 的构造函数上，如下-->
 
-![alt text](image-1.png)
+![](image-1.png)
 
 它的关键函数是 exportObject 方法，顾名思义暴露对象，他去调用了重载 🔃 方法，如下-->
 
-![alt text](image-2.png)
+![](image-2.png)
 
 可以看到它在暴露对象之前去调用了`UnicastServerRef(port)`这个方法，这个方法要跟进去看的话就是调用了一个`LiveRef(port)`，这个方法中会初始化启动 socket 所必备的东西，但还没有真正启动 socket，可以看到调用完之后的端口仍是 0-->
 
-![alt text](image-3.png)
+![](image-3.png)
 
 之后一路跟到 UnicastServerRef 类的 exportObject 方法，至此开始创建 stub（ServerStubs），如下-->
 
-![alt text](image-4.png)
+![](image-4.png)
 
 跟进去 createProxy 方法看看
 
-![alt text](image-5.png)
+![](image-5.png)
 
 可以看出首先经过了一个 if 判断，但是这里没过，所以就走的`Proxy.newProxyInstance()`一套常规的动态代理创建流程。创建完 stub 回到 exportObject 方法，可以发现再次经过了一个 if 判断，这次还是没过，没有进去。（对这两个 if 判断留个印象）
 
-![alt text](image-6.png)
+![](image-6.png)
 
 之后就把所有东西放进了 Target 中，就相当于做了一次赋值，没啥好说的，接着调用了`ref.exportObject(target);`，此时这个 ref 是之前提到的 LiveRef，之前只是初始化启动 socket 所必备的东西，这下调用了`exportObject(target)`方法毫无疑问就是要启动 socket 了！
 
 一路调用到 TCPTransport 类的 exportObject 方法的 listen 方法-->
 
-![alt text](image-7.png)
+![](image-7.png)
 
 listen 方法中创建 AcceptLoop 线程接收客户端的连接，每一个 socket 连接创建一个 ConnectionHandler 处理，这也是 BIO 处理客户端连接的基本套路，之后就等待连接了，执行后续的方法了。
 
 最后就是将 Target 实例注册到 ObjectTable 对象中，如下-->
 
-![alt text](image-245.png)
+![](image-245.png)
 
-![alt text](image-246.png)
+![](image-246.png)
 
 之后就能通过实例在 ObjectTable 中查找到对应的 Target 了。
 
 回到 UnicastServerRef 类的 exportObject 方法，此时 socket 已经启动了，可以看到实际上 stub 的 LiveRef 和 UnicastServerRef 的 LiveRef 是同一个东西，LiveRef 一样才能通信！-->
 
-![alt text](image-244.png)
+![](image-244.png)
 
 stub 是之后要传给客户端的，所以客户端和服务端才可以远程通信！至此，远程对象创建完成。
 
@@ -179,53 +179,53 @@ stub 是之后要传给客户端的，所以客户端和服务端才可以远程
 
 构造函数、初始化啥的就不啰嗦了，挑关键点跟一跟：
 
-![alt text](image-248.png)
+![](image-248.png)
 
 这和远程对象创建时候的`LiveRef(port)`一样，都是初始化启动 socket 所必备的东西，但没有真正启动 socket。接着进入到 setup 方法中，如下-->
 
-![alt text](image-247.png)
+![](image-247.png)
 
 可以看到还是去调用了 UnicastServerRef 类的 exportObject 方法，剩下的步骤和远程对象创建时候的基本一样了。其中不同的就是那两个 if 都能进去了：
 
 第一个 if-->
 
-![alt text](image-249.png)
+![](image-249.png)
 
 跟进去 createStub 方法
 
-![alt text](image-250.png)
+![](image-250.png)
 
 可以看到是直接 forName 去加载了`sun.rmi.registry.RegistryImpl_Stub`类对象，之后 newInstance 去实例化它。
 
 第二个 if-->
 
-![alt text](image-251.png)
+![](image-251.png)
 
 顾名思义，是一个创建 Skeletons 的方法，这也很好理解，由于注册中心的 Stubs 是去实例化类对象出来的，并非是动态代理创建的，功能肯定是变多的，不单单是实现远程通信，如下-->
 
-![alt text](image-253.png)
+![](image-253.png)
 
 相应的注册中心的 Skeletons 不能仅仅是一个`UnicastServerRef`，如下-->
 
-![alt text](image-258.png)
+![](image-258.png)
 
 相当于给`UnicastServerRef`加了一双翅膀。跟进去看看-->
 
-![alt text](image-252.png)
+![](image-252.png)
 
 跟进去 createSkeleton 方法
 
-![alt text](image-254.png)
+![](image-254.png)
 
 和前面 Stub 的创建类似，是 forName 加载了`sun.rmi.registry.RegistryImpl_Skel`类对象，之后 newInstance 去实例化它。最后也是启动 socket，这回的端口是固定 🧷 的 1099-->
 
-![alt text](image-255.png)
+![](image-255.png)
 
 可以看到它们的 LiveRef 是同一个东西，LiveRef 一样才能通信！
 
 最后把 Target 注册到 ObjectTable 中，如下-->
 
-![alt text](image-256.png)
+![](image-256.png)
 
 至此，注册中心创建完成。可以看到与远程对象创建时候的逻辑几乎完全相同，主要实现了以下三点：
 
@@ -239,7 +239,7 @@ stub 是之后要传给客户端的，所以客户端和服务端才可以远程
 
 当服务 helloRemoteObject 和 Registry 均已创建并发布后，之后需要将服务绑定到注册中心，很简单了，对应着的是这一行代码-->`registry.bind("helloRemoteObject", helloRemoteObject);`，跟进去调试一下：
 
-![alt text](image-257.png)
+![](image-257.png)
 
 就是将自定义好的服务名称和实例（注意这里只是 helloRemoteObject 实例，并不是一个 Target）保存到 HashMap 中即可。之后客户端在查找时可以通过 name 查找到实例，再通过实例在 ObjectTable 中查找到对应的 Target。
 
@@ -251,15 +251,15 @@ stub 是之后要传给客户端的，所以客户端和服务端才可以远程
 
 接下来去看 RMIClient 端的代码，获取 Registry 端的代码如下是这一行：`Registry registry = LocateRegistry.getRegistry("192.168.xxx.xxx", 1099);`，跟一下代码如下-->
 
-![alt text](image-259.png)
+![](image-259.png)
 
 接着如下-->
 
-![alt text](image-260.png)
+![](image-260.png)
 
 可以看到又是熟悉的 LiveRef（端口是 1099），然后这次是直接调用了`Util.createProxy(xxx)`这个方法，跟进去看看-->
 
-![alt text](image-261.png)
+![](image-261.png)
 
 可以看到和前面 Server、Registry 端的创建是一样的，进去第一个 if 判断的位置会直接 forName 加载`sun.rmi.registry.RegistryImpl_Stub`类对象，之后 newInstance 去实例化它。之后一路 return 到最开始的位置。
 
@@ -271,21 +271,21 @@ stub 是之后要传给客户端的，所以客户端和服务端才可以远程
 
 对应的是 Client 端这一行代码：`IRemoteObject helloRemoteObject = (IRemoteObject)registry.lookup("helloRemoteObject");`。先进行一些初始化的操作 newCall，之后直接将 var1 进行了 writeObject，如下-->
 
-![alt text](image-262.png)
+![](image-262.png)
 
 而 var1 是要查找的服务名称，也就是 helloRemoteObject，将一个名称进行了序列化传输，那么对应的 Registry 端一定有 readObject 方法去反序列化这个名称。
 
 之后进入`super.ref.invoke(var2);`这一行代码，注意这里的 super.ref 是 UnicastRef 类，断点下在 UnicastRef 类的 invoke 方法即可继续调试（RegistryImpl_Stub 代码是反编译出的，下不了断点），如下-->
 
-![alt text](image-263.png)
+![](image-263.png)
 
 就不继续跟 executeCall 方法的具体逻辑了（就是一个去进行网络通信的方法，和 Registry 端的 Skeletons 进行网络通讯，传输这个序列化的服务名称，得到序列化的 ServerStubs），但可以看到它有一个处理异常的方法，里面有 readObject 方法，这是需要去关注的，如下-->
 
-![alt text](image-265.png)
+![](image-265.png)
 
 设计原本可能是为了出现异常可以反序列化这个对象获取更详细 🔎 的信息，但这里是可以被攻击的。回到 RegistryImpl_Stub 类中，再次发现了一个 readObject 方法，如下-->
 
-![alt text](image-264.png)
+![](image-264.png)
 
 毫无疑问了，图中的 var6 就是经 Registry 端查询后传回来的对象，也就是 ServerStubs，有 readObject 方法，所以这里也是可以被攻击的！
 
@@ -295,11 +295,11 @@ Tips：传统观念中只有像 lookup 这种有返回值的方法才能被攻�
 
 RegistryImpl_Stub 类的 bind 方法-->
 
-![alt text](image-267.png)
+![](image-267.png)
 
 RegistryImpl_Stub 类的 rebind 方法-->
 
-![alt text](image-266.png)
+![](image-266.png)
 
 ......
 
@@ -311,75 +311,75 @@ RegistryImpl_Stub 类的 rebind 方法-->
 
 在剖析注册中心创建部分的一栏，它最后启动了一个 listen 方法，就一直等着 Client 的请求，如下-->
 
-![alt text](image-268.png)
+![](image-268.png)
 
 现在请求（序列化的服务名称）来了，看看 listen 方法会怎么做？
 
 跟到开新线程的地方，跟进去 AcceptLoop 方法-->
 
-![alt text](image-8.png)
+![](image-8.png)
 
 跟进去它 run 方法 executeAcceptLoop 方法-->
 
-![alt text](image-9.png)
+![](image-9.png)
 
 跟进去 executeAcceptLoop 方法中的 ConnectionHandler 方法-->
 
-![alt text](image-269.png)
+![](image-269.png)
 
 跟 ConnectionHandler 类的 run 方法中的 run0 方法-->
 
-![alt text](image-270.png)
+![](image-270.png)
 
 跟进去 run0 方法的 handleMessages 方法-->
 
-![alt text](image-271.png)
+![](image-271.png)
 
 顾名思义这里就是捕获请求（序列化的服务名称）的地方，再跟进去这里-->
 
-![alt text](image-272.png)
+![](image-272.png)
 
 可以看到 serviceCall 中就去拿到 ObjectTable 表中的内容-->
 
-![alt text](image-273.png)
+![](image-273.png)
 
 获取之前的绑定-->
 
-![alt text](image-278.png)
+![](image-278.png)
 
 之后拿到了 disp，disp 就是 Registry 端的 Skeletons-->
 
-![alt text](image-274.png)
+![](image-274.png)
 
 调用 disp 的 dispatch 方法如下-->
 
-![alt text](image-275.png)
+![](image-275.png)
 
 可以看到此时 disp 的类型就是一个 UnicastServerRef（很清晰了本质上还是 UnicastRef 和 UnicastServerRef 的通信），实际上就是调用了 UnicastServerRef 的 dispatch 方法，之后 dispatch 方法会调用到 oldDispatch 方法，如下-->
 
-![alt text](image-276.png)
+![](image-276.png)
 
 最后走到了 RegistryImpl_Skel 类的 dispatch 方法，如下-->
 
-![alt text](image-277.png)
+![](image-277.png)
 
 此时它四个参数的含义分别是 HelloRemoteObject 实例、请求（序列化的服务名称）、方法 ID、Hash 值。ID 是 2，也就是 lookup，那么就走到第二个 case，如下-->
 
-![alt text](image-279.png)
+![](image-279.png)
 
 出现一个 readObject 方法，毫无疑问 var7 就是 Client 端传过来的序列化的服务名称反序列化后的结果，即 helloRemoteObject，显然这里是可以被攻击的！
 
 调用 lookup 方法根据字符串查找到 HelloRemoteObject 实例，如下-->
 
-![alt text](image-293.png)
+![](image-293.png)
 
 将 var8 序列化传回 Client 端，如下-->
 
-![alt text](image-282.png)
+![](image-282.png)
 
 可以看到 var8 只是一个 HelloRemoteObject 的实例，并不是一个 stubs，但继续跟代码会发现经过一次 replaceObject 函数调用，会根据实例去之前的 ObjectTable 中查找到对应的 Stubs，如下-->
 
-![alt text](image-294.png)
+![](image-294.png)
 
 总结：回顾这个过程，`IRemoteObject helloRemoteObject = (IRemoteObject)registry.lookup("helloRemoteObject");`这一行代码在 Registry 端的实现是有一个漏洞利用点的，是 Client 端攻击 Registry 端。
 
@@ -387,11 +387,11 @@ Tips：Client 向 Registry 端调用不同方法发送请求，虽然不一定�
 
 reblind 方法-->
 
-![alt text](image-280.png)
+![](image-280.png)
 
 unbind 方法-->
 
-![alt text](image-281.png)
+![](image-281.png)
 
 ......
 
@@ -412,39 +412,39 @@ unbind 方法-->
 
 最后一行代码了`helloRemoteObject.sayHello("xxx");`，经过上述分析目前这个 helloRemoteObject 对象已经是一个由动态代理实现的 ServerStubs 了，如下-->
 
-![alt text](image-283.png)
+![](image-283.png)
 
 由于是一个动态代理类，调用 sayHello 方法会调用到 RemoteObjectInvocationHandler 类的 invoke 方法中，invoke 方法经过一些判断后，调用到下图的位置-->
 
-![alt text](image-284.png)
+![](image-284.png)
 
 接着跟 invokeRemoteMethod 方法-->
 
-![alt text](image-285.png)
+![](image-285.png)
 
 实际上最后还是去调用了 UnicastRef 类的 invoke 方法，但这个和上面提到的不一样，是 invoke 方法的另一个重载 🔃，跟一下关键的 writeObject 方法，如下-->
 
-![alt text](image-286.png)
+![](image-286.png)
 
-![alt text](image-287.png)
+![](image-287.png)
 
 是将`helloRemoteObject.sayHello("xxx");`中的参数 xxx 进行了序列化。然后调用了熟悉的`call.executeCall();`，和上面提到过的作用相同（去进行网络通信的方法，和 Server 端的 Seketon 进行网络通讯，传输这个序列化的参数，得到序列化的返回值）-->
 
-![alt text](image-288.png)
+![](image-288.png)
 
 由于 executeCall 方法中处理异常的方法中也有 readObject 方法，所以这里也是可以被攻击的！不再赘述了。
 
 之后就是 unmarshalValue 方法，将返回值反序列化，如下-->
 
-![alt text](image-289.png)
+![](image-289.png)
 
-![alt text](image-290.png)
+![](image-290.png)
 
 毫无疑问，returnValue 的值就是 Hello xxx 了，显然这里是能被攻击的。
 
 粘一张时序图-->
 
-![alt text](image-306.png)
+![](image-306.png)
 
 总结：回顾这个过程，`helloRemoteObject.sayHello("xxx");`这一行代码在是有两个漏洞利用点的，属于 Server 端攻击 Client 端。
 
@@ -454,49 +454,49 @@ unbind 方法-->
 
 老位置下断点-->
 
-![alt text](image-291.png)
+![](image-291.png)
 
-![alt text](image-292.png)
+![](image-292.png)
 
 接下来由于 num 值为-1，则不会进入`oldDispatch(xxx)`方法，如下-->
 
-![alt text](image-295.png)
+![](image-295.png)
 
 num 值的具体含义就是方法 ID，这点也在前文提及了，现在是 Client 端与 Server 端进行通信，自然不会有像与 Registry 端通信时的那么多方法，也很好理解。Server 端是通过如下两步去确定具体执行的方法（sayHello 方法）-->
 
-![alt text](image-303.png)
+![](image-303.png)
 
-![alt text](image-304.png)
+![](image-304.png)
 
 接下来跟到`unmarshalValue(xxx)`函数如下-->
 
-![alt text](image-296.png)
+![](image-296.png)
 
-![alt text](image-297.png)
+![](image-297.png)
 
 引入眼帘的就是 readObject 方法，这是可以被攻击的！显然是将 Client 端序列化后的参数反序列化回来（跟一下 in 这个变量，它一开始就是来自 call 变量），即 xxx，如下-->
 
-![alt text](image-298.png)
+![](image-298.png)
 
 参数拿到后就在 Sever 端执行方法，如下-->
 
-![alt text](image-299.png)
+![](image-299.png)
 
 再将这个结果序列化，如下-->
 
-![alt text](image-301.png)
+![](image-301.png)
 
-![alt text](image-300.png)
+![](image-300.png)
 
 其中会走到 replaceObject 方法，但又不是要传一个 Stub，当然不会进去这个 if 方法，如下-->
 
-![alt text](image-302.png)
+![](image-302.png)
 
 就是单纯的将`Hello xxx`这个字符串序列化然后进行传输。
 
 粘一张时序图-->
 
-![alt text](image-305.png)
+![](image-305.png)
 
 至此，服务调用的过程中 Server 端部分就分析完了。总结一下：`helloRemoteObject.sayHello("xxx");`这一行代码在 Server 端的实现是有一个漏洞利用点的，属于 Client 端攻击 Server 端。
 
@@ -504,67 +504,67 @@ num 值的具体含义就是方法 ID，这点也在前文提及了，现在是 
 
 至此 Java RMI 的各个流程已经很清晰了，但调试代码还是会遇到小插曲，在 Server 端的 Transport.serviceCall 方法的`disp.dispatch(impl, call);`处下断点。
 
-![alt text](image-307.png)
+![](image-307.png)
 
 上图是第一次运行到这里，此时 skel 变量是 RegistryImpl_Skel 的实例，与 Registry_Stub 进行通信，之后要根据 impl 去查找 ServerStubs 将它序列化返回给 Client，这是很好理解的，也是上面详细 🔎 分析过的。
 
-![alt text](image-308.png)
+![](image-308.png)
 
 上图是第二次运行到这里，但此时的 skel 变量是 DGCImpl_Skel 的实例，impl 参数是一个叫做 DGCImpl 的实例，这是从来没有见过的，它们是用来做什么的？跟一下代码。
 
 老样子，因为 skel 变量不为空，进入到 oldDispatch 方法，如下-->
 
-![alt text](image-309.png)
+![](image-309.png)
 
 进入到`skel.dispatch(obj, call, op, hash);`方法
 
-![alt text](image-310.png)
+![](image-310.png)
 
 此时的 op 变量值为 1，进入到第二个 case，如下-->
 
-![alt text](image-311.png)
+![](image-311.png)
 
 显然`var13.readObject();`这里是存在漏洞利用点的，var13 的前身是 call 变量，它是从 Client 端来的，似曾相识，这里其实和 Registry 端与 Client 端通信的流程类似，它的 Stub 应该也是在 Client 端自实现的，并不是从 Server 端获取的。
 
 之后将 var11 变量序列化传回 Client 端，如下-->
 
-![alt text](image-312.png)
+![](image-312.png)
 
 Tips：验证一下猜想（DGC 的 Stub 是在 Client 端自实现的），全局搜索`Util.createProxy(DGCImpl.class`，下断点-->
 
-![alt text](image-313.png)
+![](image-313.png)
 
 在 Client 端反序列化 ServerStubs 后进一步在 Client 端调试，果然走到上图位置，查看此时调用栈-->
 
-![alt text](image-320.png)
+![](image-320.png)
 
 是 RegistryImpl_Stub.lookup 方法中的`super.ref.done(var2);`发起的，如下-->
 
-![alt text](image-321.png)
+![](image-321.png)
 
 不光是 lookup 方法，还有 unbind、reblind、rebind 等方法在 finally 都会调用这个方法，这里不赘述了。
 
 接着就是很常规的一套流程-->
 
-![alt text](image-314.png)
+![](image-314.png)
 
-![alt text](image-315.png)
+![](image-315.png)
 
 成功创建好 DGCImpl_Stub，由于知道在 Server 端的 DGCImpl_Skel 类的 dispatch 方法中，op 变量值为 1，会进入到第二个 case，相对应的在 Client 端应该是去调用了 DGCImpl_Stub 类的第二个方法-->dirty，搜调用，只有一处-->
 
-![alt text](image-317.png)
+![](image-317.png)
 
 下断点调试，果然走到这里，如下-->
 
-![alt text](image-316.png)
+![](image-316.png)
 
 接着就是序列化（这里和 Server 端的 readObject 就对应起来了）-->
 
-![alt text](image-318.png)
+![](image-318.png)
 
 熟悉的`super.ref.invoke(var5);`和对 Server 端返回值的反序列化-->
 
-![alt text](image-319.png)
+![](image-319.png)
 
 显然这里是存在两个漏洞利用点的，是可以被攻击的！至于 DGCImpl_Skel 是如何创建的，简单记录 📝，创建时间是在`HelloRemoteObject helloRemoteObject = new HelloRemoteObject();`这行代码之前，创建方式和 RegistryImpl_Skel 类似，不赘述了。
 

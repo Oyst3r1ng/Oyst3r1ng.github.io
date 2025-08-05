@@ -8,7 +8,7 @@ categories: [Java安全]
 
 能将 ClassLoader#defineClass 与 CC 链相结合写出的 Payload 其实已经很接近 CommonsCollections3 链了，但是去翻看 ysoserial 中 CommonsCollections3 的源码，发现还是有所不同的，如下-->
 
-![alt text](1.png)
+![](1.png)
 
 看看到底什么原因？
 
@@ -79,7 +79,7 @@ public class CC1ClassLoader {
 
 执行代码成功触发 DNS 请求，如下-->
 
-![alt text](7.png)
+![](7.png)
 
 大白话一点就是用 InvokerTransformer 去实现了加载字节码的功能，例如现在有这样一种情况：服务端的防护代码将 Runtime 类过滤掉了，那么如上的 Payload 就是一个很好的解决方案，那如果开发人员将 InvokerTransformer 类给过滤掉呢？历史上还真就有这样的事情发生。
 
@@ -92,7 +92,7 @@ your day](https://frohoff.github.io/appseccali-marshalling-pickles/)，以及 Ja
 
 [SerialKiller](https://github.com/ikkisoft/SerialKiller)是⼀个 Java 反序列化过滤器，可以通过⿊名单与⽩名单的⽅式来限制反序列化时允许通过的类。在其发布的第⼀个版本代码中，可以看到其给出了最初的[黑名单](https://github.com/ikkisoft/SerialKiller/blob/998c0abc5b/config/serialkiller.conf)
 
-![alt text](2.png)
+![](2.png)
 
 这个⿊名单中 InvokerTransformer 赫然在列，也就切断了 CommonsCollections1 的利⽤链，随后增加了不少新的 Gadgets，其中就包括 CommonsCollections3 链。
 
@@ -111,11 +111,11 @@ TemplatesImpl#newTransformer() ->
 
 可以看出只要执行 TemplatesImpl 类的 newTransformer()即可完成字节码加载，不一定非要用`new InvokerTransformer("newTransformer",null,null)`这种方式，看一下 newTransformer 方法的调用情况-->
 
-![alt text](3.png)
+![](3.png)
 
 总共有五处调用，其中 CC3 的作者用到的是 TrAXFilter 类的构造函数，如下-->
 
-![alt text](4.png)
+![](4.png)
 
 现在只要调用了 TrAXFilter 类的构造函数，就可以触发字节码加载，写个 demo 验证一下-->
 
@@ -145,13 +145,13 @@ public class CommonsCollections3  {
 
 执行代码成功触发 DNS 请求，如下-->
 
-![alt text](7.png)
+![](7.png)
 
 而现在不能用 InvokerTransformer 去执行`new TrAXFilter(templatesImpl);`这行代码，这⾥会⽤到⼀个新的
 Transformer 类-->`org.apache.commons.collections.functors.InstantiateTransformer`。
 它的 transform 方法的作⽤就是以反射的形式调⽤构造⽅法。
 
-![alt text](5.png)
+![](5.png)
 
 现在将上面的 demo 改成 InstantiateTransformer 的写法，如下-->
 
@@ -184,11 +184,11 @@ public class CommonsCollections3  {
 
 执行代码成功触发 DNS 请求，如下-->
 
-![alt text](7.png)
+![](7.png)
 
 Tips：TrAXFilter 类其实是没有继承 Serializable 接口的-->
 
-![alt text](6.png)
+![](6.png)
 
 但 instantiateTransformer 的 transform 方法是反射调用了构造器-->`Constructor con = ((Class) input).getConstructor(iParamTypes);`，只需要给 transform 方法的参数传一个 Class 对象即可。这一点无形之中解决了 TrAXFilter 类无法被序列化的问题。
 
@@ -266,6 +266,6 @@ public class CommonsCollections3  {
 
 执行代码成功触发 DNS 请求，如下-->
 
-![alt text](7.png)
+![](7.png)
 
 至此，CommonsCollections3 链从 0 到 1 结束。

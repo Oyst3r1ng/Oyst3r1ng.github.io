@@ -30,7 +30,7 @@ This is a major release: It combines bug fixes, new features and changes to exis
 
 看commons-collections各个版本的时间线，如下：
 
-![alt text](image-218.png)
+![](image-218.png)
 
 不难发现，`commons-collections4 4.0`是在2013-11-27发布的，查阅资料`commons-collections 3.2.1`是2010-03-03发布的，`commons-collections 3.2.2`这个版本是在2015年针对于`commons-collections 3.2.1`版本的漏洞做了修复，`commons-collections4 4.1`这个版本也是在2015去针对`commons-collections4 4.0`版本的漏洞做了修复，所以猜测`commons-collections4 4.0`这个版本应该是有`commons-collections 3.2.1`的所有漏洞的。（CC1、CC6、CC3）
 
@@ -101,43 +101,43 @@ public class CommonCollections1 {
 
 可以发现IDEA爆红了，如下-->
 
-![alt text](image-219.png)
+![](image-219.png)
 
 查看TransformedMap类的Structure，可以发现在`commons-collections4 4.0`这个依赖中，直接将原本在`commons-collections 3.2.1`这个依赖中的`TransformedMap.decorate(xxx)`给删除了，如下-->
 
-![alt text](image-220.png)
+![](image-220.png)
 
 直接换成了一个static类型的构造方法-->
 
-![alt text](image-221.png)
+![](image-221.png)
 
 小改动，把EXP跟着改一下即可，将`TransformedMap.decorate(map,null,chainedTransformer);`改为`TransformedMap.transformedMap(map,null,chainedTransformer);`，但问题又出现了，如下-->
 
-![alt text](image-222.png)
+![](image-222.png)
 
 transformedMap这个方法的逻辑是，判断map的size是否大于0，大于0则进入`decorated.transformMap(map)`，跟进去-->
 
-![alt text](image-223.png)
+![](image-223.png)
 
 可以看到循环中直接调用`transformValue(entry.getValue())`，而这个会直接触发告警，如下-->
 
-![alt text](image-224.png)
+![](image-224.png)
 
-![alt text](image-48.png)
+![](image-48.png)
 
 且此后的返回值是一个LinkedMap-->
 
-![alt text](image-225.png)
+![](image-225.png)
 
 这样往后继续执行CC1的剩余部分肯定是不行了，且会报错（LinkedMap类中的UNIXProcess没有继承Serializable接口）。`transformedMap(xxx)`这个函数类似于预编译的意思，不想重复去transform（相同的代码不想执行第二遍），正如注释中所写的-->avoids double transformation!所以会生成一个线程，下一次直接用就好了。
 
 但同时可以发现TransformedMap类还有一个static类型的构造方法`transformingMap(xxx)`，如下
 
-![alt text](image-226.png)
+![](image-226.png)
 
 它没有那么多杂七杂八的逻辑，因此直接将`TransformedMap.decorate(map,null,chainedTransformer);`改为`TransformedMap.transformingMap(map,null,chainedTransformer);`即可，执行后一切正常，也成功触发了DNS请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 LazyMap的改动也是如此，将`LazyMap.decorate(xxx);`改为`LazyMap.lazyMap(xxx);`即可，那么CommonCollections1（LazyMap）、CommonCollections6、CommonCollections3都是可以在`commons-collections4 4.0`中正常使⽤，这里不赘述了。
 
@@ -147,11 +147,11 @@ LazyMap的改动也是如此，将`LazyMap.decorate(xxx);`改为`LazyMap.lazyMap
 
 下面是4.0的代码
 
-![alt text](image-227.png)
+![](image-227.png)
 
 下面是3.2.1的代码
 
-![alt text](image-228.png)
+![](image-228.png)
 
 找不同，嗯嗯，4.0的TransformingComparator类继承了Serializable接口，3.2.1的TransformingComparator类没有继承。接下来开始一步步的构造。
 
@@ -192,11 +192,11 @@ public class CommonCollections2 {
 
 成功触发DNS请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 2.接下来是要去找方法中调用`xxx.transform()`的类，xxx可控，且类继承了Serializable接口，嗯嗯没错就是TransformingComparator类。如下-->
 
-![alt text](image-229.png)
+![](image-229.png)
 
 其中的`this.transformer`可以通过构造函数去赋值，且构造函数为public，把EXP向下写一点，如下-->
 
@@ -237,11 +237,11 @@ public class CommonCollections2 {
 
 成功触发DNS请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 3.之后就去找方法中调用了`xxx.compare()`的类，最好这个方法是readObject()，最后是没找到，但CommonsCollections2的作者间接的找到了这样的一条Gadget：PriorityQueue.readObject().heapify()-->PriorityQueue.heapify().siftDown()-->PriorityQueue.siftDown().siftDownUsingComparator()-->PriorityQueue.siftDownUsingComparator()含有comparator.compare(xxx)，如下-->
 
-![alt text](image-230.png)
+![](image-230.png)
 
 将整个过程用代码实现一下，挺简单的，不啰嗦了，如下-->
 
@@ -302,15 +302,15 @@ public class CommonCollections2 {
 
 成功的进到了`heapify()`方法中，如下-->
 
-![alt text](image-231.png)
+![](image-231.png)
 
 但是在`heapify()`方法中，并没有调用`siftDown()`方法，如下-->
 
-![alt text](image-232.png)
+![](image-232.png)
 
 观察代码，若想成功的调用到`siftDown()`方法，则必须保证`size >>> 1`表达式的计算🧮结果大于等于1，而size的值可以在如下的位置去增加：
 
-![alt text](image-233.png)
+![](image-233.png)
 
 上图中的offer方法在执行`priorityQueue.add(xxx)`的时候会被调用，调用一次，size的值就会增加一次，由于要保证`size >>> 1`表达式的计算结果大于等于1，那么size的值至少为2，则至少要增加两次，也就是至少要调用两次add方法，修改代码如下-->
 
@@ -371,15 +371,15 @@ public class CommonCollections2 {
 
 执行后发现报错如下-->
 
-![alt text](image-234.png)
+![](image-234.png)
 
 且DNSlog平台收到了请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 4.EXP在逻辑上是没有问题的，但为什么会报错呢？跟一下代码会发现，其实在序列化之前，`ping 6y7d5.cxsys.spacestabs.top`就已经被执行了，跟一下堆栈，如下-->
 
-![alt text](image-235.png)
+![](image-235.png)
 
 原来问题出在`priorityQueue.add(xxx)`这一步，它会去调用`offer(xxx)`方法，`offer(xxx)`方法会去调用`shiftUp()`方法，`shiftUp()`方法会去调用`siftUpUsingComparator()`方法，`siftUpUsingComparator()`方法中也有`comparator.compare(xxx)`，所以接着会继续执行后续构造好的Gadget及Sink，触发DNS请求。
 
@@ -504,13 +504,13 @@ public class CommonCollections2 {
 
 运行后成功触发DNS请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 ## CommonsCollections4链
 
 也学过Shiro，要想成功利用，EXP中不能包含非Java自身的数组，而CommonsCollections4链就是在CommonsCollections2的基础上加了TemplatesImpl加载字节码技术-->
 
-![alt text](image-236.png)
+![](image-236.png)
 
 挺简单的，不在赘述。先将CommonsCollections2链和TemplatesImpl结合起来，代码如下-->
 
@@ -577,17 +577,17 @@ public class CommonCollections4 {
 
 运行后成功触发DNS请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 再将其中的`Transformer[]`替换，其实就是让`new ConstantTransformer(clazz)`这行代码消失，跟一下`transform(xxx)`，看看其中的xxx是否可控，如下-->
 
-![alt text](image-237.png)
+![](image-237.png)
 
-![alt text](image-238.png)
+![](image-238.png)
 
 而其中c变量的值即是一开始的`priorityQueue.add(2);`中的2，如下-->
 
-![alt text](image-239.png)
+![](image-239.png)
 
 所以`transform(xxx)`其中的xxx是可控的，不需要去`new ConstantTransformer(clazz)`，修改即可，代码如下-->
 
@@ -648,7 +648,7 @@ public class CommonCollections4 {
 
 成功触发DNS请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 改改EXP，给Shiro 1.2.4加个`commons-collections4 4.0`的依赖，打一下Shiro反序列化漏洞，EXP如下-->
 
@@ -704,15 +704,15 @@ public class ShiroCommonCollections4 {
 
 生成Payload如下-->
 
-![alt text](image-240.png)
+![](image-240.png)
 
 发包
 
-![alt text](image-241.png)
+![](image-241.png)
 
 成功收到回显，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 ## CC链官方修复方案
 
@@ -721,13 +721,13 @@ public class ShiroCommonCollections4 {
 
 1.先看3.2.2版本的修复方案，它增加了⼀个⽅法`FunctorUtils.checkUnsafeSerialization()`，⽤于检测反序列化是否安全。且配置文件默认开启检测，如下-->
 
-![alt text](image-242.png)
+![](image-242.png)
 
 这个检查在常⻅的危险Transformer类（ InstantiateTransformer 、 InvokerTransformer 、 PrototypeFactory 、 CloneTransformer 等）的 readObject ⾥进⾏调⽤，所以，当反序列化包含这些对象时就会抛出异常。
 
 2.再看4.1版本的修复方案，它将这⼏个危险Transformer类不再实现 Serializable 接⼝-->
 
-![alt text](image-243.png)
+![](image-243.png)
 
 也就是这几个类再也不能被序列化，更别说在反序列化漏洞中利用了。
 

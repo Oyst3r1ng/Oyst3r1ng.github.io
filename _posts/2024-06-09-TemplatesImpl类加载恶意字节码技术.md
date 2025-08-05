@@ -13,23 +13,23 @@ categories: [Java安全]
 下图可见是`com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl`这个类中定义了一个内部类
 `TransletClassLoader`去调用了defineClass方法-->
 
-![alt text](image-136.png)
+![](image-136.png)
 
 现在这个方法的作用域是default的，再去查看这个方法的调用情况，可以发现只有一处去调用了它-->
 
-![alt text](image-137.png)
+![](image-137.png)
 
 而这个defineTransletClasses方法的作用域是private的，如下-->
 
-![alt text](image-138.png)
+![](image-138.png)
 
 再去寻找哪里去调用了defineTransletClasses方法，一共有三处，分别如下-->
 
-![alt text](image-139.png)
+![](image-139.png)
 
-![alt text](image-140.png)
+![](image-140.png)
 
-![alt text](image-141.png)
+![](image-141.png)
 
 可以看到前两处基本相同，但是第三处有这样一行代码-->`AbstractTranslet translet = (AbstractTranslet) _class[_transletIndex].newInstance();`，它是去实例化了`_class[_transletIndex]`这个类，而这个类就是通过defineClass去加载的那个类，这样就可以为后续的POC书写省一步实例化类的步骤，拿之的demo解释一下-->
 
@@ -49,15 +49,15 @@ public class Loader {
 
 OK毫无疑问优先去选取第三处，而它这个方法（getTransletInstance）也是private的，如下-->
 
-![alt text](image-142.png)
+![](image-142.png)
 
 所以需要去寻找它的调用者，只有一处-->
 
-![alt text](image-143.png)
+![](image-143.png)
 
 而调用getTransletInstance方法的newTransformer方法是public的，如下-->
 
-![alt text](image-144.png)
+![](image-144.png)
 
 切入点算是被找到了，整理一下，整个调用链⛓️‍💥如下-->
 
@@ -76,23 +76,23 @@ TemplatesImpl#newTransformer() ->
 
 1.`TemplatesImpl#newTransformer()`这一步是不需要的-->
 
-![alt text](image-145.png)
+![](image-145.png)
 
 2.`TemplatesImpl#getTransletInstance()`这一步需要给变量`_name`赋值且不能给变量`_class`赋值-->
 
-![alt text](image-146.png)
+![](image-146.png)
 
 3.`TemplatesImpl#defineTransletClasses()`这一步需要给变量`_bytecodes`和`_tfactory`赋值-->
 
-![alt text](image-147.png)
+![](image-147.png)
 
 之后才能走到下面这里
 
-![alt text](image-148.png)
+![](image-148.png)
 
 一共三个变量需要赋值，看看都要去赋什么值？变量`_name`只是个名字，赋任意字符串即可，将变量`_bytecodes`向后跟一下，即可发现它是`defineClass(null, b, 0, b.length)`中的b，所以这个变量要赋恶意字节码，最后一个变量`_tfactory`将它赋成`new TransformerFactoryImpl()`，具体原因见下（照猫画虎保证正常执行即可）-->
 
-![alt text](image-149.png)
+![](image-149.png)
 
 这些赋值的操作直接用反射去修改即可，代码如下-->
 
@@ -137,25 +137,25 @@ public class DNS {
 
 此时去执行TemplatesImplLoader.main方法，DNSlog平台没有收到请求且有如下的报错。
 
-![alt text](image-150.png)
+![](image-150.png)
 
 ## 解决报错
 
 首先在defineClass方法中处下断点，可以发现已经成功的加载到了恶意字节码，如下-->
 
-![alt text](image-151.png)
+![](image-151.png)
 
-![alt text](image-152.png)
+![](image-152.png)
 
 可以推断出，应该是加载的字节码哪里不符合要求，导致了这个报错。
 
 接着在`com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl.defineTransletClasses(TemplatesImpl.java:422)`附近下断点调试，可以发现正常情况下代码应该走到1处，而现在代码走到了2处-->
 
-![alt text](image-153.png)
+![](image-153.png)
 
 要想走到1处则必须满足`superClass.getName().equals(ABSTRACT_TRANSLET)`为true，也就是加载的恶意类的父类必须是`com.sun.org.apache.xalan.internal.xsltc.trax.AbstractTranslet`-->
 
-![alt text](image-154.png)
+![](image-154.png)
 
 修改一下上面给到的DNS类，让它继承`com.sun.org.apache.xalan.internal.xsltc.trax.AbstractTranslet`，由于AbstractTranslet类是一个抽象类，继承了它就要重写其中的一些方法，如下-->
 
@@ -207,7 +207,7 @@ public class TemplatesImplLoader  {
 
 运行后成功触发DNS请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 ## 扩大危害
 
@@ -279,7 +279,7 @@ public class CC1ClassLoader {
 
 运行后成功触发DNS请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 CC6同样可以，如下-->
 
@@ -353,6 +353,6 @@ public class CC6ClassLoader {
 
 也成功触发DNS请求，如下-->
 
-![alt text](image-48.png)
+![](image-48.png)
 
 至此，成功的将ClassLoader#defineClass与CC链相结合。

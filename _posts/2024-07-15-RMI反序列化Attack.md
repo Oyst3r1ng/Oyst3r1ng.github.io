@@ -27,11 +27,11 @@ categories: [Java安全]
 
 理论上客户端与服务端均可以去攻击注册中心，无非是 lookup 等方法与 bind 等方法的区别罢了，最终都会到`RegistryImpl_Skel.dispatch(xxx)`这个漏洞触发点，但这里讨论的是 Server 端和 Registry 端在同一端的情况，避免产生歧义，提前说明。接下来就拿 lookup 方法来说明。
 
-![alt text](1.png)
+![](1.png)
 
 从上图可以看出，直接对 var10 变量进行了反序列化的操作，而这个 var10 变量就是 lookup 方法的参数，去看一下 RegistryImpl_Stub 中的 lookup 方法，如下-->
 
-![alt text](2.png)
+![](2.png)
 
 可以看出，lookup 方法的参数是一个 String 类型，而要打一个反序列化漏洞，类型最好是一个 Object 类型，String 类甚至都没有重写 readObject 方法，目前没有听说拿 String 类型去打反序列化漏洞的，这么看貌似无法利用 lookup 方法去进行攻击。但实际上当写完`Registry registry = LocateRegistry.getRegistry("192.168.xxx.xxx", 1099);`这一行代码后，客户端自实现了 RegistryImpl_Stub，它就可以远程通信了，自己实现一个 lookup 方法（接受参数类型为 Object）把恶意对象发过去即可。
 
@@ -126,7 +126,7 @@ public class ClientAttackRegistry {
 
 成功触发 DNS 请求，如下-->
 
-![alt text](20.png)
+![](20.png)
 
 当然改一下 bind 函数也是可以的，如下-->
 
@@ -145,11 +145,11 @@ public static void bind(RegistryImpl_Stub registry) throws Exception {
 
 成功触发 DNS 请求，如下-->
 
-![alt text](20.png)
+![](20.png)
 
 换汤不换药了哈哈，单纯换了个函数名，有没有更优解？看一下 Stub 中 bind 方法的源码，如下-->
 
-![alt text](3.png)
+![](3.png)
 
 其中会将 var2 变量序列化，var2 变量的类型是 Remote 类型（一个接口类型），既然是接口，那么就可以利用动态代理！简单改一下 CC 链的收尾部分即可，这里拿 CC1（LazyMap 版本） 举例，如下-->
 
@@ -221,19 +221,19 @@ public class ClientAttackRegistry {
 
 当反序列化 remoteProxy 时，即调用`remoteProxy.readObject()`，其关联的 InvocationHandler（即 AnnotationInvocationHandler 实例）的 readObject 方法会被调用，下断点调试如下-->
 
-![alt text](4.png)
+![](4.png)
 
 此时的调用栈如下-->
 
-![alt text](5.png)
+![](5.png)
 
 接着将代码走完，成功触发 DNS 请求，如下-->
 
-![alt text](20.png)
+![](20.png)
 
 这个通过动态代理攻击手段就是 Ysoserial 中 ysoserial.exploit.RMIRegistryExploit 的原理，详情 🔎 如下-->
 
-![alt text](6.png)
+![](6.png)
 
 服务端攻击注册中心的思路与客户端攻击注册中心的思路完全相同，且在上文用 bind 方法做过演示，关于攻击注册中心的部分到此结束。
 
@@ -340,7 +340,7 @@ public class ClientAttackServer {
 
 成功触发 DNS 请求，如下-->
 
-![alt text](20.png)
+![](20.png)
 
 这么看攻击面似乎不是很大，Server 端若没有参数为 Object 的方法似乎是不可以攻击的。事实真的是这样吗？嗯嗯显然是有办法去绕过的，做个实验，在 Server 端将重写的`public String sayHello(Object object)`注释掉，再次运行代码，DNSLog 平台没有收到请求，且代码报错如下
 
@@ -363,31 +363,31 @@ Caused by: java.rmi.UnmarshalException: unrecognized method hash: method not sup
 
 在`UnicastServerRef.java:294`这里下断点跟一下，此时的 op 值为-8646385277647511247，如下-->
 
-![alt text](7.png)
+![](7.png)
 
 而此时 hashToMethod_Map 中有且只有一个 key 值为 8370655165776887524，如下-->
 
-![alt text](8.png)
+![](8.png)
 
 显然是找不到的，即变量 method 会被赋值为 null，此时 F2 手动将 op 值赋为 8370655165776887524，继续运行代码，会发现成功触发 DNS 请求，如下-->
 
-![alt text](20.png)
+![](20.png)
 
 嗯嗯对，看来关键就是此处，现在问题变成了要找到一种方式，使得传递的参数是恶意的反序列化数据，但方法的 hash 值却要和 hashToMethod_Map 中的 hash 值相同-->这个问题进而变成要去找到 Client 端计算 hash 值的方法，去 Hook 这个点。跟跟代码即可，不啰嗦了，是在下图这里（RemoteObjectInvocationHandler.invokeRemoteMethod）-->
 
-![alt text](9.png)
+![](9.png)
 
 Server 端保持`public String sayHello(Object object)`注释状态，Client 端传入恶意的反序列化数据，上图处下断点，修改变量 method 的值为`IRemoteObject.class.getDeclaredMethod("sayHello", String.class)`，修改成功如下-->
 
-![alt text](10.png)
+![](10.png)
 
 此时的 hash 值为 8370655165776887524，见下图。
 
-![alt text](11.png)
+![](11.png)
 
 继续运行代码，成功触发 DNS 请求，如下-->
 
-![alt text](20.png)
+![](20.png)
 
 显然通过这种方法便可使得利用难度大大降低，这也是众多文章中 Bypass JEP290 去攻击 RMI 的手法之一，在此基础上衍生出很多其他的方法，例如 RASP、流量层替换等等。
 
@@ -395,35 +395,35 @@ Server 端保持`public String sayHello(Object object)`注释状态，Client 端
 
 可以类比为客户端攻击注册中心，客户端攻击注册中心用到的是`java.rmi.registry.RegistryImpl_Stub`中的方法，这里是要用到`sun.rmi.transport.DGCImpl_Stub`中的方法，如下-->
 
-![alt text](12.png)
+![](12.png)
 
 老样子重写 clean 或者 dirty 方法即可，但这里的问题在于，如何去自实现一个 DGCImpl_Stub？自实现 RegistryImpl_Stub 简单，即`Registry registry = LocateRegistry.getRegistry("192.168.xxx.xxx", 1099);`一行代码完事，但是自实现 DGCImpl_Stub 就比较麻烦，它的端口是不固定的，要想自实现 DGCImpl_Stub 其实就是要去 Hook 到它端口具体的值，跟一跟。
 
 下图是 Client 端开始自实现 DGCImpl_Stub 的位置。
 
-![alt text](13.png)
+![](13.png)
 
 显然其中的 endpoint 变量是要去重点关注的，有了它，就可以去自实现 DGCImpl_Stub 了，沿着堆栈跟，如下-->
 
-![alt text](14.png)
+![](14.png)
 
-![alt text](15.png)
+![](15.png)
 
-![alt text](16.png)
+![](16.png)
 
 最终就是跟到上图这里，显然`"[192.168.137.114:60891]"`是来自于 incomingRefTable，全局搜索 🔍 它，不难发现它只在一处有赋值，如下-->
 
-![alt text](17.png)
+![](17.png)
 
-![alt text](18.png)
+![](18.png)
 
 最后竟然跟到了 ref，而 ref 又是 ServerStubs 中的 LiveRef，所以默认情况下，DGCImpl_Stub 的通信端口是与 ServerStubs 的端口相同的。理论上是可以获得到 ServerStubs 的 LiveRef，接下来选取一下从哪里开始创建 DGCImpl_Stub。
 
-![alt text](13.png)
+![](13.png)
 
 上图这里吗？但它的 EndpointEntry 方法是私有的，不太方便，那看它的上一层，如下-->
 
-![alt text](14.png)
+![](14.png)
 
 `public static EndpointEntry lookup(Endpoint ep)`是 public static，那好就它了，写个 demo 尝试如下-->
 
@@ -506,7 +506,7 @@ public class DGCAttackServer {
 
 调试会发现此时的 entry 不等于 null，无法进入`entry = new EndpointEntry(ep);`，如下-->
 
-![alt text](19.png)
+![](19.png)
 
 也简单，加一步反射直接将 endpointTable 清空即可（有点 DNSLog 那条链的感觉），之后就是反射调用 lookup 方法拿到 DGCImpl_Stub 的实例，重写 clean 方法即可，整理整理，给出最终的 EXP 如下-->
 
@@ -622,7 +622,7 @@ public class DGCAttackServer {
 
 运行成功触发 DNS 请求，如下-->
 
-![alt text](20.png)
+![](20.png)
 
 翻看 Ysoserial 中 ysoserial.exploit.JRMPClient 的实现是同一个思路，都使用 DGC 进行攻击，但原理还是有所不同。
 
@@ -639,7 +639,7 @@ java -cp ysoserial-all.jar ysoserial.exploit.JRMPClient 192.168.137.114 1099 Com
 
 运行成功触发 DNS 请求，如下-->
 
-![alt text](20.png)
+![](20.png)
 
 关于攻击服务端的手法到此结束 🔚！
 
@@ -647,7 +647,7 @@ java -cp ysoserial-all.jar ysoserial.exploit.JRMPClient 192.168.137.114 1099 Com
 
 上面已经依次演示过客户端攻击注册中心、服务端、DGC。那么注册中心、DGC、服务端攻击客户端无非就是镜像操作，且实战意义较少，不做演示。而还有一种攻击手法是打客户端的 StreamRemoteCall.executeCall(xxx)，即下图-->
 
-![alt text](21.png)
+![](21.png)
 
 这其实就是 Ysoserial 中 ysoserial.exploit.JRMPListener 的实现原理，尝试打一下：
 
@@ -663,7 +663,7 @@ Closing connection
 
 此时成功触发 DNS 请求，如下-->
 
-![alt text](20.png)
+![](20.png)
 
 关于攻击客户端的手法到此结束。文章也到此结束，关于 JEP290 的绕过、RMI 衍生出的 Gadgets 打二次反序列化等等之后有时间再更吧！
 
