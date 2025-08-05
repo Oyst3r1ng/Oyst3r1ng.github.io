@@ -4,22 +4,22 @@ title: "应急响应-Windows 日志分析和Web日志分析"
 categories: [应急溯源]
 ---
 
-## Windows日志分析
+## Windows 日志分析
 
-- 打开方式：在cmd窗口去输入**eventvwr.msc**
+- 打开方式：在 cmd 窗口去输入**eventvwr.msc**
 
-Windows系统日志是记录系统中硬件、软件和系统问题的信息，同时还可以监视系统中发生的事件，用户可以通过它来检查错误发生的原因，或者去寻找受到攻击时攻击者留下的痕迹
+Windows 系统日志是记录系统中硬件、软件和系统问题的信息，同时还可以监视系统中发生的事件，用户可以通过它来检查错误发生的原因，或者去寻找受到攻击时攻击者留下的痕迹
 
-Windows主要有以下三类日志记录系统事件：应用程序日志、系统日志和安全日志
+Windows 主要有以下三类日志记录系统事件：应用程序日志、系统日志和安全日志
 
 - 应用程序日志位置：  
-    C:\\Windows\\System32\\winevt\\Logs\\System.evtx
+   C:\\Windows\\System32\\winevt\\Logs\\System.evtx
 
 - 系统日志位置：  
-    C:\\Windows\\System32\\winevt\\Logs\\Application.evtx
+   C:\\Windows\\System32\\winevt\\Logs\\Application.evtx
 
 - 安全日志位置：  
-    C:\\Windows\\System32\\winevt\\Logs\\Security.evtx
+   C:\\Windows\\System32\\winevt\\Logs\\Security.evtx
 
 ![](image-45-1024x549.png)
 
@@ -31,7 +31,7 @@ Windows主要有以下三类日志记录系统事件：应用程序日志、系�
 
 ### 系统日志
 
-记录操作系统组件产生的事件，主要包括驱动程序、系统组件和应用软件的崩溃以及数据丢失错误等，系统日志中记录的时间类型由Windows NT/2000操作系统预先定义
+记录操作系统组件产生的事件，主要包括驱动程序、系统组件和应用软件的崩溃以及数据丢失错误等，系统日志中记录的时间类型由 Windows NT/2000 操作系统预先定义
 
 默认位置: `%SystemRoot%\System32\Winevt\Logs\System.evtx`
 
@@ -57,26 +57,26 @@ Windows主要有以下三类日志记录系统事件：应用程序日志、系�
 
 ![](image-48.png)
 
-### 事件ID对应的具体事件
+### 事件 ID 对应的具体事件
 
 Windows 的日志以事件 id 来标识具体发生的动作行为，可通过这个网站查询具体 id 对应的操作
 
 [Windows Security Log Encyclopedia (ultimatewindowssecurity.com)](https://www.ultimatewindowssecurity.com/securitylog/encyclopedia/default.aspx?i=j)
 
 ```
-1102   清理审计日志   
+1102   清理审计日志
 
-4624   账号成功登录   
+4624   账号成功登录
 
-4625   账号登录失败   
+4625   账号登录失败
 
-4720   创建用户   
+4720   创建用户
 
-4726   删除用户   
+4726   删除用户
 
-4732   将成员添加到启用安全的本地组中   
+4732   将成员添加到启用安全的本地组中
 
-4733   将成员从启用安全的本地组中移除   
+4733   将成员从启用安全的本地组中移除
 ```
 
 ### 事件日志中的事件级别
@@ -85,13 +85,13 @@ Windows 的日志以事件 id 来标识具体发生的动作行为，可通过�
 
 ### 登录类型
 
-这个来分析一下是不是有人3389等机器了还是就是本地键盘登的这种......
+这个来分析一下是不是有人 3389 等机器了还是就是本地键盘登的这种......
 
 ![](image-50-1024x411.png)
 
 ### 关于日志覆盖的问题
 
-Windows系统内置三个核心日志文件:System、Security、Application，默认大小均为20480kB也就是20MB，记录数据超过20MB时会覆盖过期的日志文件，其他的应用程序以及服务日志默认大小均为1MB，超过这个大小一样的处理方法
+Windows 系统内置三个核心日志文件:System、Security、Application，默认大小均为 20480kB 也就是 20MB，记录数据超过 20MB 时会覆盖过期的日志文件，其他的应用程序以及服务日志默认大小均为 1MB，超过这个大小一样的处理方法
 
 而这个也不是绝对的，是可以去更改的，给公司的话就尽量的选择第二种，然后应用
 
@@ -105,7 +105,7 @@ Windows系统内置三个核心日志文件:System、Security、Application，�
 
 ![](image-52-1024x547.png)
 
-使用方法：一般都是分析这个安全日志，所以我们这里用安全日志来演示，首先就是先在事件查看器中把这个安全日志导到任意一个目录，这里就导到C盘的根目录了，并把它命名为Security.evtx
+使用方法：一般都是分析这个安全日志，所以我们这里用安全日志来演示，首先就是先在事件查看器中把这个安全日志导到任意一个目录，这里就导到 C 盘的根目录了，并把它命名为 Security.evtx
 
 ![](image-53.png)
 
@@ -137,13 +137,13 @@ LogParser.exe -i:EVT -o:DATAGRID "SELECT * FROM c:\Security.evtx where TimeGener
 
 ![](image-56-1024x160.png)
 
-- **提取登录成功的用户名和IP**
+- **提取登录成功的用户名和 IP**
 
 ```
 LogParser.exe -i:EVT -o:DATAGRID "SELECT EXTRACT_TOKEN(Message,13,' ') as EventType,TimeGenerated as LoginTime,EXTRACT_TOKEN(Strings,5,'|') as Username,EXTRACT_TOKEN(Message,38,' ') as Loginip FROM c:\Security.evtx where EventID=4624"
 ```
 
-这个的话就是可以用来查横向移动的，得到电脑主机名后，就可以ping这个主机名，看看这个IP是哪里的
+这个的话就是可以用来查横向移动的，得到电脑主机名后，就可以 ping 这个主机名，看看这个 IP 是哪里的
 
 - **登录失败的所有事件**
 
@@ -167,9 +167,9 @@ LogParser.exe -i:EVT -o:DATAGRID "SELECT TimeGenerated,EventID,Message FROM c:\S
 
 [【Windows】日志删除恢复 | CN-SEC 中文网](https://cn-sec.com/archives/296575.html)
 
-## Web日志分析
+## Web 日志分析
 
-从web应用日志中，可以分析出攻击者在什么时间，使用哪个IP，访问了哪个网站，IIS日志通常存放在%SyatemDrive%\\inetpub\\logs\\LogFiles目录，日志文件由时间命名，下面这个不是我的服务器，不太方便给看
+从 web 应用日志中，可以分析出攻击者在什么时间，使用哪个 IP，访问了哪个网站，IIS 日志通常存放在%SyatemDrive%\\inetpub\\logs\\LogFiles 目录，日志文件由时间命名，下面这个不是我的服务器，不太方便给看
 
 ![](image-58.png)
 
@@ -177,4 +177,4 @@ LogParser.exe -i:EVT -o:DATAGRID "SELECT TimeGenerated,EventID,Message FROM c:\S
 
 ![](image-57-1024x704.png)
 
-这是一种，或者去github上去找这种专门去可以分析日志的工具，到了客户现场把它所有的日志先导出来，然后放本地工具上做个可视化，而且还有搜索什么的功能还是蛮方便的
+这是一种，或者去 github 上去找这种专门去可以分析日志的工具，到了客户现场把它所有的日志先导出来，然后放本地工具上做个可视化，而且还有搜索什么的功能还是蛮方便的

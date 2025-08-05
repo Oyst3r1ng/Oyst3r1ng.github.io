@@ -6,7 +6,7 @@ categories: [Java安全]
 
 ## 前言
 
-如题，孪生链⛓️‍💥。它们这两条链大同小异，它们都只出现在如下的这个依赖中，即`commons-collections4 4.0`中-->
+如题，孪生链 ⛓️‍💥。它们这两条链大同小异，它们都只出现在如下的这个依赖中，即`commons-collections4 4.0`中-->
 
 ```xml
 <dependency>
@@ -16,11 +16,11 @@ categories: [Java安全]
 </dependency>
 ```
 
-这两条链的EntryClass与Gadget一模一样，区别在于CommonsCollections2的Sink是`InvokerTransformer.transform()`，一次单纯的命令执行（当然也能用它进一步去loadClass，或者是调用TemplatesImpl去加载恶意字节码），而CommonsCollections4的Sink是`TemplatesImpl$TransletClassLoader.defineClass()`（InstantiateTransformer.transform()），一次恶意字节码加载，所以两条链大同小异，放一起了。
+这两条链的 EntryClass 与 Gadget 一模一样，区别在于 CommonsCollections2 的 Sink 是`InvokerTransformer.transform()`，一次单纯的命令执行（当然也能用它进一步去 loadClass，或者是调用 TemplatesImpl 去加载恶意字节码），而 CommonsCollections4 的 Sink 是`TemplatesImpl$TransletClassLoader.defineClass()`（InstantiateTransformer.transform()），一次恶意字节码加载，所以两条链大同小异，放一起了。
 
 ## 准备工作&历史背景
 
-JDK版本依旧、在Maven依赖中加入commons-collections4 4.0，即前言中写的。注意此时是`commons-collections4 4.0`，而不是`commons-collections 4.0`，这两个依赖是相互独立的！以下是官方的说明：
+JDK 版本依旧、在 Maven 依赖中加入 commons-collections4 4.0，即前言中写的。注意此时是`commons-collections4 4.0`，而不是`commons-collections 4.0`，这两个依赖是相互独立的！以下是官方的说明：
 
 ```
 This is a major release: It combines bug fixes, new features and changes to existing features. Most notable changes are: use of generics and other language features introduced in Java 5 (varargs, Iterable), removed deprecated classes / methods and features which are now supported by the JDK, replaced Buffer interface with java.util.Queue, added concept of split maps with respective interfaces Put / Get (see also package splitmap), added new Trie interface together with an implementation of a Patricia Trie. Because of the base package name change, this release can be used together with earlier versions of Commons Collections. The minimal version of the Java platform required to compile and use Commons Collections is Java 5. Users are encouraged to upgrade to this version as, in addition to new features, this release includes numerous bug fixes.
@@ -28,15 +28,15 @@ This is a major release: It combines bug fixes, new features and changes to exis
 
 官方认为，旧版的 commons-collections 存在一些架构和 API 设计上的不足，若要修复这些问题，将会引入与现有版本不兼容的重大变化。因此，commons-collections4 被定位为一个全新的库，而非对旧版的直接升级。由于两者的命名空间不重叠，因此它们可以共存于同一个项目中。
 
-看commons-collections各个版本的时间线，如下：
+看 commons-collections 各个版本的时间线，如下：
 
 ![](image-218.png)
 
-不难发现，`commons-collections4 4.0`是在2013-11-27发布的，查阅资料`commons-collections 3.2.1`是2010-03-03发布的，`commons-collections 3.2.2`这个版本是在2015年针对于`commons-collections 3.2.1`版本的漏洞做了修复，`commons-collections4 4.1`这个版本也是在2015去针对`commons-collections4 4.0`版本的漏洞做了修复，所以猜测`commons-collections4 4.0`这个版本应该是有`commons-collections 3.2.1`的所有漏洞的。（CC1、CC6、CC3）
+不难发现，`commons-collections4 4.0`是在 2013-11-27 发布的，查阅资料`commons-collections 3.2.1`是 2010-03-03 发布的，`commons-collections 3.2.2`这个版本是在 2015 年针对于`commons-collections 3.2.1`版本的漏洞做了修复，`commons-collections4 4.1`这个版本也是在 2015 去针对`commons-collections4 4.0`版本的漏洞做了修复，所以猜测`commons-collections4 4.0`这个版本应该是有`commons-collections 3.2.1`的所有漏洞的。（CC1、CC6、CC3）
 
 ## 验证猜想
 
-看一下CC1（TransformedMap）那条链，把依赖改一改，如下-->
+看一下 CC1（TransformedMap）那条链，把依赖改一改，如下-->
 
 ```java
 import org.apache.commons.collections4.Transformer;
@@ -99,23 +99,23 @@ public class CommonCollections1 {
 }
 ```
 
-可以发现IDEA爆红了，如下-->
+可以发现 IDEA 爆红了，如下-->
 
 ![](image-219.png)
 
-查看TransformedMap类的Structure，可以发现在`commons-collections4 4.0`这个依赖中，直接将原本在`commons-collections 3.2.1`这个依赖中的`TransformedMap.decorate(xxx)`给删除了，如下-->
+查看 TransformedMap 类的 Structure，可以发现在`commons-collections4 4.0`这个依赖中，直接将原本在`commons-collections 3.2.1`这个依赖中的`TransformedMap.decorate(xxx)`给删除了，如下-->
 
 ![](image-220.png)
 
-直接换成了一个static类型的构造方法-->
+直接换成了一个 static 类型的构造方法-->
 
 ![](image-221.png)
 
-小改动，把EXP跟着改一下即可，将`TransformedMap.decorate(map,null,chainedTransformer);`改为`TransformedMap.transformedMap(map,null,chainedTransformer);`，但问题又出现了，如下-->
+小改动，把 EXP 跟着改一下即可，将`TransformedMap.decorate(map,null,chainedTransformer);`改为`TransformedMap.transformedMap(map,null,chainedTransformer);`，但问题又出现了，如下-->
 
 ![](image-222.png)
 
-transformedMap这个方法的逻辑是，判断map的size是否大于0，大于0则进入`decorated.transformMap(map)`，跟进去-->
+transformedMap 这个方法的逻辑是，判断 map 的 size 是否大于 0，大于 0 则进入`decorated.transformMap(map)`，跟进去-->
 
 ![](image-223.png)
 
@@ -125,37 +125,37 @@ transformedMap这个方法的逻辑是，判断map的size是否大于0，大于0
 
 ![](image-48.png)
 
-且此后的返回值是一个LinkedMap-->
+且此后的返回值是一个 LinkedMap-->
 
 ![](image-225.png)
 
-这样往后继续执行CC1的剩余部分肯定是不行了，且会报错（LinkedMap类中的UNIXProcess没有继承Serializable接口）。`transformedMap(xxx)`这个函数类似于预编译的意思，不想重复去transform（相同的代码不想执行第二遍），正如注释中所写的-->avoids double transformation!所以会生成一个线程，下一次直接用就好了。
+这样往后继续执行 CC1 的剩余部分肯定是不行了，且会报错（LinkedMap 类中的 UNIXProcess 没有继承 Serializable 接口）。`transformedMap(xxx)`这个函数类似于预编译的意思，不想重复去 transform（相同的代码不想执行第二遍），正如注释中所写的-->avoids double transformation!所以会生成一个线程，下一次直接用就好了。
 
-但同时可以发现TransformedMap类还有一个static类型的构造方法`transformingMap(xxx)`，如下
+但同时可以发现 TransformedMap 类还有一个 static 类型的构造方法`transformingMap(xxx)`，如下
 
 ![](image-226.png)
 
-它没有那么多杂七杂八的逻辑，因此直接将`TransformedMap.decorate(map,null,chainedTransformer);`改为`TransformedMap.transformingMap(map,null,chainedTransformer);`即可，执行后一切正常，也成功触发了DNS请求，如下-->
+它没有那么多杂七杂八的逻辑，因此直接将`TransformedMap.decorate(map,null,chainedTransformer);`改为`TransformedMap.transformingMap(map,null,chainedTransformer);`即可，执行后一切正常，也成功触发了 DNS 请求，如下-->
 
 ![](image-48.png)
 
-LazyMap的改动也是如此，将`LazyMap.decorate(xxx);`改为`LazyMap.lazyMap(xxx);`即可，那么CommonCollections1（LazyMap）、CommonCollections6、CommonCollections3都是可以在`commons-collections4 4.0`中正常使⽤，这里不赘述了。
+LazyMap 的改动也是如此，将`LazyMap.decorate(xxx);`改为`LazyMap.lazyMap(xxx);`即可，那么 CommonCollections1（LazyMap）、CommonCollections6、CommonCollections3 都是可以在`commons-collections4 4.0`中正常使⽤，这里不赘述了。
 
 ## CommonsCollections2
 
-从上面也可以看到，`commons-collections4 4.0`还是对代码做了一些改动的，而ysoserial的作者从下面这处改动中挖掘出了新的Gadget-->
+从上面也可以看到，`commons-collections4 4.0`还是对代码做了一些改动的，而 ysoserial 的作者从下面这处改动中挖掘出了新的 Gadget-->
 
-下面是4.0的代码
+下面是 4.0 的代码
 
 ![](image-227.png)
 
-下面是3.2.1的代码
+下面是 3.2.1 的代码
 
 ![](image-228.png)
 
-找不同，嗯嗯，4.0的TransformingComparator类继承了Serializable接口，3.2.1的TransformingComparator类没有继承。接下来开始一步步的构造。
+找不同，嗯嗯，4.0 的 TransformingComparator 类继承了 Serializable 接口，3.2.1 的 TransformingComparator 类没有继承。接下来开始一步步的构造。
 
-1.还是先搬出之前的EXP，如下-->
+1.还是先搬出之前的 EXP，如下-->
 
 ```java
 import org.apache.commons.collections4.Transformer;
@@ -190,15 +190,15 @@ public class CommonCollections2 {
 }
 ```
 
-成功触发DNS请求，如下-->
+成功触发 DNS 请求，如下-->
 
 ![](image-48.png)
 
-2.接下来是要去找方法中调用`xxx.transform()`的类，xxx可控，且类继承了Serializable接口，嗯嗯没错就是TransformingComparator类。如下-->
+2.接下来是要去找方法中调用`xxx.transform()`的类，xxx 可控，且类继承了 Serializable 接口，嗯嗯没错就是 TransformingComparator 类。如下-->
 
 ![](image-229.png)
 
-其中的`this.transformer`可以通过构造函数去赋值，且构造函数为public，把EXP向下写一点，如下-->
+其中的`this.transformer`可以通过构造函数去赋值，且构造函数为 public，把 EXP 向下写一点，如下-->
 
 ```java
 import org.apache.commons.collections4.Transformer;
@@ -235,11 +235,11 @@ public class CommonCollections2 {
 }
 ```
 
-成功触发DNS请求，如下-->
+成功触发 DNS 请求，如下-->
 
 ![](image-48.png)
 
-3.之后就去找方法中调用了`xxx.compare()`的类，最好这个方法是readObject()，最后是没找到，但CommonsCollections2的作者间接的找到了这样的一条Gadget：PriorityQueue.readObject().heapify()-->PriorityQueue.heapify().siftDown()-->PriorityQueue.siftDown().siftDownUsingComparator()-->PriorityQueue.siftDownUsingComparator()含有comparator.compare(xxx)，如下-->
+3.之后就去找方法中调用了`xxx.compare()`的类，最好这个方法是 readObject()，最后是没找到，但 CommonsCollections2 的作者间接的找到了这样的一条 Gadget：PriorityQueue.readObject().heapify()-->PriorityQueue.heapify().siftDown()-->PriorityQueue.siftDown().siftDownUsingComparator()-->PriorityQueue.siftDownUsingComparator()含有 comparator.compare(xxx)，如下-->
 
 ![](image-230.png)
 
@@ -298,7 +298,7 @@ public class CommonCollections2 {
 }
 ```
 
-执行后DNSlog平台并没有收到回显，`serializeObject(priorityQueue);`这一步是没有报错的，说明其中用到的所有类都继承了Serializable接口，问题肯定出现在`unSerializeObject("ser.bin");`这一步，下断点调试。
+执行后 DNSlog 平台并没有收到回显，`serializeObject(priorityQueue);`这一步是没有报错的，说明其中用到的所有类都继承了 Serializable 接口，问题肯定出现在`unSerializeObject("ser.bin");`这一步，下断点调试。
 
 成功的进到了`heapify()`方法中，如下-->
 
@@ -308,11 +308,11 @@ public class CommonCollections2 {
 
 ![](image-232.png)
 
-观察代码，若想成功的调用到`siftDown()`方法，则必须保证`size >>> 1`表达式的计算🧮结果大于等于1，而size的值可以在如下的位置去增加：
+观察代码，若想成功的调用到`siftDown()`方法，则必须保证`size >>> 1`表达式的计算 🧮 结果大于等于 1，而 size 的值可以在如下的位置去增加：
 
 ![](image-233.png)
 
-上图中的offer方法在执行`priorityQueue.add(xxx)`的时候会被调用，调用一次，size的值就会增加一次，由于要保证`size >>> 1`表达式的计算结果大于等于1，那么size的值至少为2，则至少要增加两次，也就是至少要调用两次add方法，修改代码如下-->
+上图中的 offer 方法在执行`priorityQueue.add(xxx)`的时候会被调用，调用一次，size 的值就会增加一次，由于要保证`size >>> 1`表达式的计算结果大于等于 1，那么 size 的值至少为 2，则至少要增加两次，也就是至少要调用两次 add 方法，修改代码如下-->
 
 ```java
 import org.apache.commons.collections4.Transformer;
@@ -373,17 +373,17 @@ public class CommonCollections2 {
 
 ![](image-234.png)
 
-且DNSlog平台收到了请求，如下-->
+且 DNSlog 平台收到了请求，如下-->
 
 ![](image-48.png)
 
-4.EXP在逻辑上是没有问题的，但为什么会报错呢？跟一下代码会发现，其实在序列化之前，`ping 6y7d5.cxsys.spacestabs.top`就已经被执行了，跟一下堆栈，如下-->
+4.EXP 在逻辑上是没有问题的，但为什么会报错呢？跟一下代码会发现，其实在序列化之前，`ping 6y7d5.cxsys.spacestabs.top`就已经被执行了，跟一下堆栈，如下-->
 
 ![](image-235.png)
 
-原来问题出在`priorityQueue.add(xxx)`这一步，它会去调用`offer(xxx)`方法，`offer(xxx)`方法会去调用`shiftUp()`方法，`shiftUp()`方法会去调用`siftUpUsingComparator()`方法，`siftUpUsingComparator()`方法中也有`comparator.compare(xxx)`，所以接着会继续执行后续构造好的Gadget及Sink，触发DNS请求。
+原来问题出在`priorityQueue.add(xxx)`这一步，它会去调用`offer(xxx)`方法，`offer(xxx)`方法会去调用`shiftUp()`方法，`shiftUp()`方法会去调用`siftUpUsingComparator()`方法，`siftUpUsingComparator()`方法中也有`comparator.compare(xxx)`，所以接着会继续执行后续构造好的 Gadget 及 Sink，触发 DNS 请求。
 
-Tips：回到开发人员的角度，PriorityQueue就是一个基于二叉堆的优先队列，优先队列要求每次出队的元素都是优先级最高的元素，而二叉堆每次都可以弹出最小的元素，而元素的大小比较方法可以由用户Comparator指定，则可以把最小和优先级最高绑定在一起，最小的即是优先级最高的。下面举个例子说明：
+Tips：回到开发人员的角度，PriorityQueue 就是一个基于二叉堆的优先队列，优先队列要求每次出队的元素都是优先级最高的元素，而二叉堆每次都可以弹出最小的元素，而元素的大小比较方法可以由用户 Comparator 指定，则可以把最小和优先级最高绑定在一起，最小的即是优先级最高的。下面举个例子说明：
 
 ```java
 import java.util.Comparator;
@@ -438,9 +438,9 @@ public class PriorityQueueTest {
 执行任务: Task{备份数据库, priority=5}
 ```
 
-底层中，`add()`方法相当于给二叉堆插入新节点，二叉堆实现插入的方式是上移（也就是`shiftUp()`），然后调用自定义的比较器（也就是`siftUpUsingComparator()`）。而反序列化需要恢复这个结构的顺序，所以会进行排序（也就是`heapify()`），二叉堆实现排序的方式是下移（也就是`siftDown()`），接着会调用自定义的比较器（也就是`siftDownUsingComparator()`）。这么看，CommonsCollections2这条链也是有迹可循的。
+底层中，`add()`方法相当于给二叉堆插入新节点，二叉堆实现插入的方式是上移（也就是`shiftUp()`），然后调用自定义的比较器（也就是`siftUpUsingComparator()`）。而反序列化需要恢复这个结构的顺序，所以会进行排序（也就是`heapify()`），二叉堆实现排序的方式是下移（也就是`siftDown()`），接着会调用自定义的比较器（也就是`siftDownUsingComparator()`）。这么看，CommonsCollections2 这条链也是有迹可循的。
 
-OK回到正题，解决方案很简单，借鉴URLDNS链的思想即可，代码如下-->
+OK 回到正题，解决方案很简单，借鉴 URLDNS 链的思想即可，代码如下-->
 
 ```java
 import org.apache.commons.collections4.Transformer;
@@ -502,17 +502,17 @@ public class CommonCollections2 {
 }
 ```
 
-运行后成功触发DNS请求，如下-->
+运行后成功触发 DNS 请求，如下-->
 
 ![](image-48.png)
 
-## CommonsCollections4链
+## CommonsCollections4 链
 
-也学过Shiro，要想成功利用，EXP中不能包含非Java自身的数组，而CommonsCollections4链就是在CommonsCollections2的基础上加了TemplatesImpl加载字节码技术-->
+也学过 Shiro，要想成功利用，EXP 中不能包含非 Java 自身的数组，而 CommonsCollections4 链就是在 CommonsCollections2 的基础上加了 TemplatesImpl 加载字节码技术-->
 
 ![](image-236.png)
 
-挺简单的，不在赘述。先将CommonsCollections2链和TemplatesImpl结合起来，代码如下-->
+挺简单的，不在赘述。先将 CommonsCollections2 链和 TemplatesImpl 结合起来，代码如下-->
 
 ```java
 import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
@@ -575,21 +575,21 @@ public class CommonCollections4 {
 }
 ```
 
-运行后成功触发DNS请求，如下-->
+运行后成功触发 DNS 请求，如下-->
 
 ![](image-48.png)
 
-再将其中的`Transformer[]`替换，其实就是让`new ConstantTransformer(clazz)`这行代码消失，跟一下`transform(xxx)`，看看其中的xxx是否可控，如下-->
+再将其中的`Transformer[]`替换，其实就是让`new ConstantTransformer(clazz)`这行代码消失，跟一下`transform(xxx)`，看看其中的 xxx 是否可控，如下-->
 
 ![](image-237.png)
 
 ![](image-238.png)
 
-而其中c变量的值即是一开始的`priorityQueue.add(2);`中的2，如下-->
+而其中 c 变量的值即是一开始的`priorityQueue.add(2);`中的 2，如下-->
 
 ![](image-239.png)
 
-所以`transform(xxx)`其中的xxx是可控的，不需要去`new ConstantTransformer(clazz)`，修改即可，代码如下-->
+所以`transform(xxx)`其中的 xxx 是可控的，不需要去`new ConstantTransformer(clazz)`，修改即可，代码如下-->
 
 ```java
 import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
@@ -646,11 +646,11 @@ public class CommonCollections4 {
 }
 ```
 
-成功触发DNS请求，如下-->
+成功触发 DNS 请求，如下-->
 
 ![](image-48.png)
 
-改改EXP，给Shiro 1.2.4加个`commons-collections4 4.0`的依赖，打一下Shiro反序列化漏洞，EXP如下-->
+改改 EXP，给 Shiro 1.2.4 加个`commons-collections4 4.0`的依赖，打一下 Shiro 反序列化漏洞，EXP 如下-->
 
 ```java
 import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
@@ -702,7 +702,7 @@ public class ShiroCommonCollections4 {
 }
 ```
 
-生成Payload如下-->
+生成 Payload 如下-->
 
 ![](image-240.png)
 
@@ -714,21 +714,21 @@ public class ShiroCommonCollections4 {
 
 ![](image-48.png)
 
-## CC链官方修复方案
+## CC 链官方修复方案
 
-在历史背景中也提及过了，Apache Commons Collections官⽅在2015年底得知序列化相关的问题后，就在两个分⽀
-上同时发布了新的版本，4.1和3.2.2。两个版本描述分别是：This is a security and bugfix release && This is a security and minor release。
+在历史背景中也提及过了，Apache Commons Collections 官⽅在 2015 年底得知序列化相关的问题后，就在两个分⽀
+上同时发布了新的版本，4.1 和 3.2.2。两个版本描述分别是：This is a security and bugfix release && This is a security and minor release。
 
-1.先看3.2.2版本的修复方案，它增加了⼀个⽅法`FunctorUtils.checkUnsafeSerialization()`，⽤于检测反序列化是否安全。且配置文件默认开启检测，如下-->
+1.先看 3.2.2 版本的修复方案，它增加了⼀个⽅法`FunctorUtils.checkUnsafeSerialization()`，⽤于检测反序列化是否安全。且配置文件默认开启检测，如下-->
 
 ![](image-242.png)
 
-这个检查在常⻅的危险Transformer类（ InstantiateTransformer 、 InvokerTransformer 、 PrototypeFactory 、 CloneTransformer 等）的 readObject ⾥进⾏调⽤，所以，当反序列化包含这些对象时就会抛出异常。
+这个检查在常⻅的危险 Transformer 类（ InstantiateTransformer 、 InvokerTransformer 、 PrototypeFactory 、 CloneTransformer 等）的 readObject ⾥进⾏调⽤，所以，当反序列化包含这些对象时就会抛出异常。
 
-2.再看4.1版本的修复方案，它将这⼏个危险Transformer类不再实现 Serializable 接⼝-->
+2.再看 4.1 版本的修复方案，它将这⼏个危险 Transformer 类不再实现 Serializable 接⼝-->
 
 ![](image-243.png)
 
 也就是这几个类再也不能被序列化，更别说在反序列化漏洞中利用了。
 
-至此，CommonsCollections2&CommonsCollections4链完结。随着这两个大版本对应的修复，CC链也基本上完结了。
+至此，CommonsCollections2&CommonsCollections4 链完结。随着这两个大版本对应的修复，CC 链也基本上完结了。

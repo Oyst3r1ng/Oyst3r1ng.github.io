@@ -6,24 +6,24 @@ categories: [Java安全]
 
 ## 前言
 
-一周前写过一篇文章-->“动态加载字节码的应用”，其中一部分详细分析🧐了TemplatesImpl类&BCEL类加载字节码技术的前世，这篇文章阐述一下其中的TemplatesImpl类加载恶意字节码技术的具体实现过程（今生）。
+一周前写过一篇文章-->“动态加载字节码的应用”，其中一部分详细分析 🧐 了 TemplatesImpl 类&BCEL 类加载字节码技术的前世，这篇文章阐述一下其中的 TemplatesImpl 类加载恶意字节码技术的具体实现过程（今生）。
 
 ## 寻找切入点
 
 下图可见是`com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl`这个类中定义了一个内部类
-`TransletClassLoader`去调用了defineClass方法-->
+`TransletClassLoader`去调用了 defineClass 方法-->
 
 ![](image-136.png)
 
-现在这个方法的作用域是default的，再去查看这个方法的调用情况，可以发现只有一处去调用了它-->
+现在这个方法的作用域是 default 的，再去查看这个方法的调用情况，可以发现只有一处去调用了它-->
 
 ![](image-137.png)
 
-而这个defineTransletClasses方法的作用域是private的，如下-->
+而这个 defineTransletClasses 方法的作用域是 private 的，如下-->
 
 ![](image-138.png)
 
-再去寻找哪里去调用了defineTransletClasses方法，一共有三处，分别如下-->
+再去寻找哪里去调用了 defineTransletClasses 方法，一共有三处，分别如下-->
 
 ![](image-139.png)
 
@@ -31,7 +31,7 @@ categories: [Java安全]
 
 ![](image-141.png)
 
-可以看到前两处基本相同，但是第三处有这样一行代码-->`AbstractTranslet translet = (AbstractTranslet) _class[_transletIndex].newInstance();`，它是去实例化了`_class[_transletIndex]`这个类，而这个类就是通过defineClass去加载的那个类，这样就可以为后续的POC书写省一步实例化类的步骤，拿之的demo解释一下-->
+可以看到前两处基本相同，但是第三处有这样一行代码-->`AbstractTranslet translet = (AbstractTranslet) _class[_transletIndex].newInstance();`，它是去实例化了`_class[_transletIndex]`这个类，而这个类就是通过 defineClass 去加载的那个类，这样就可以为后续的 POC 书写省一步实例化类的步骤，拿之的 demo 解释一下-->
 
 ```java
 import java.net.URL;
@@ -47,7 +47,7 @@ public class Loader {
 }
 ```
 
-OK毫无疑问优先去选取第三处，而它这个方法（getTransletInstance）也是private的，如下-->
+OK 毫无疑问优先去选取第三处，而它这个方法（getTransletInstance）也是 private 的，如下-->
 
 ![](image-142.png)
 
@@ -55,16 +55,16 @@ OK毫无疑问优先去选取第三处，而它这个方法（getTransletInstanc
 
 ![](image-143.png)
 
-而调用getTransletInstance方法的newTransformer方法是public的，如下-->
+而调用 getTransletInstance 方法的 newTransformer 方法是 public 的，如下-->
 
 ![](image-144.png)
 
-切入点算是被找到了，整理一下，整个调用链⛓️‍💥如下-->
+切入点算是被找到了，整理一下，整个调用链 ⛓️‍💥 如下-->
 
 ```
 TemplatesImpl#newTransformer() ->
-    TemplatesImpl#getTransletInstance() -> 
-        TemplatesImpl#defineTransletClasses() -> 
+    TemplatesImpl#getTransletInstance() ->
+        TemplatesImpl#defineTransletClasses() ->
             TransletClassLoader#defineClass()
 ```
 
@@ -72,7 +72,7 @@ TemplatesImpl#newTransformer() ->
 
 ## 节点串成链
 
-按照从newTransformer方法到defineClass方法的顺序，一步步来分析需要给哪些变量赋值。
+按照从 newTransformer 方法到 defineClass 方法的顺序，一步步来分析需要给哪些变量赋值。
 
 1.`TemplatesImpl#newTransformer()`这一步是不需要的-->
 
@@ -90,7 +90,7 @@ TemplatesImpl#newTransformer() ->
 
 ![](image-148.png)
 
-一共三个变量需要赋值，看看都要去赋什么值？变量`_name`只是个名字，赋任意字符串即可，将变量`_bytecodes`向后跟一下，即可发现它是`defineClass(null, b, 0, b.length)`中的b，所以这个变量要赋恶意字节码，最后一个变量`_tfactory`将它赋成`new TransformerFactoryImpl()`，具体原因见下（照猫画虎保证正常执行即可）-->
+一共三个变量需要赋值，看看都要去赋什么值？变量`_name`只是个名字，赋任意字符串即可，将变量`_bytecodes`向后跟一下，即可发现它是`defineClass(null, b, 0, b.length)`中的 b，所以这个变量要赋恶意字节码，最后一个变量`_tfactory`将它赋成`new TransformerFactoryImpl()`，具体原因见下（照猫画虎保证正常执行即可）-->
 
 ![](image-149.png)
 
@@ -119,7 +119,7 @@ public class TemplatesImplLoader  {
 }
 ```
 
-Tips：代码中code的值是下面这个java文件编译后恶意class文件的base64编码-->
+Tips：代码中 code 的值是下面这个 java 文件编译后恶意 class 文件的 base64 编码-->
 
 ```java
 import java.io.IOException;
@@ -135,13 +135,13 @@ public class DNS {
 }
 ```
 
-此时去执行TemplatesImplLoader.main方法，DNSlog平台没有收到请求且有如下的报错。
+此时去执行 TemplatesImplLoader.main 方法，DNSlog 平台没有收到请求且有如下的报错。
 
 ![](image-150.png)
 
 ## 解决报错
 
-首先在defineClass方法中处下断点，可以发现已经成功的加载到了恶意字节码，如下-->
+首先在 defineClass 方法中处下断点，可以发现已经成功的加载到了恶意字节码，如下-->
 
 ![](image-151.png)
 
@@ -149,15 +149,15 @@ public class DNS {
 
 可以推断出，应该是加载的字节码哪里不符合要求，导致了这个报错。
 
-接着在`com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl.defineTransletClasses(TemplatesImpl.java:422)`附近下断点调试，可以发现正常情况下代码应该走到1处，而现在代码走到了2处-->
+接着在`com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl.defineTransletClasses(TemplatesImpl.java:422)`附近下断点调试，可以发现正常情况下代码应该走到 1 处，而现在代码走到了 2 处-->
 
 ![](image-153.png)
 
-要想走到1处则必须满足`superClass.getName().equals(ABSTRACT_TRANSLET)`为true，也就是加载的恶意类的父类必须是`com.sun.org.apache.xalan.internal.xsltc.trax.AbstractTranslet`-->
+要想走到 1 处则必须满足`superClass.getName().equals(ABSTRACT_TRANSLET)`为 true，也就是加载的恶意类的父类必须是`com.sun.org.apache.xalan.internal.xsltc.trax.AbstractTranslet`-->
 
 ![](image-154.png)
 
-修改一下上面给到的DNS类，让它继承`com.sun.org.apache.xalan.internal.xsltc.trax.AbstractTranslet`，由于AbstractTranslet类是一个抽象类，继承了它就要重写其中的一些方法，如下-->
+修改一下上面给到的 DNS 类，让它继承`com.sun.org.apache.xalan.internal.xsltc.trax.AbstractTranslet`，由于 AbstractTranslet 类是一个抽象类，继承了它就要重写其中的一些方法，如下-->
 
 ```java
 import com.sun.org.apache.xalan.internal.xsltc.DOM;
@@ -180,7 +180,7 @@ public class DNS extends AbstractTranslet {
 }
 ```
 
-将这个类编译成字节码后用base64编码，放到code中即可，最终的代码如下-->
+将这个类编译成字节码后用 base64 编码，放到 code 中即可，最终的代码如下-->
 
 ```java
 import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
@@ -205,13 +205,13 @@ public class TemplatesImplLoader  {
 }
 ```
 
-运行后成功触发DNS请求，如下-->
+运行后成功触发 DNS 请求，如下-->
 
 ![](image-48.png)
 
 ## 扩大危害
 
-现在通过TemplatesImpl类终于可以将ClassLoader#defineClass与CC链相结合了，还是拿CC1那条链（走TransformedMap的那条）做个例子，如下-->
+现在通过 TemplatesImpl 类终于可以将 ClassLoader#defineClass 与 CC 链相结合了，还是拿 CC1 那条链（走 TransformedMap 的那条）做个例子，如下-->
 
 ```java
 import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
@@ -277,11 +277,11 @@ public class CC1ClassLoader {
 }
 ```
 
-运行后成功触发DNS请求，如下-->
+运行后成功触发 DNS 请求，如下-->
 
 ![](image-48.png)
 
-CC6同样可以，如下-->
+CC6 同样可以，如下-->
 
 ```java
 import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
@@ -351,8 +351,8 @@ public class CC6ClassLoader {
 }
 ```
 
-也成功触发DNS请求，如下-->
+也成功触发 DNS 请求，如下-->
 
 ![](image-48.png)
 
-至此，成功的将ClassLoader#defineClass与CC链相结合。
+至此，成功的将 ClassLoader#defineClass 与 CC 链相结合。

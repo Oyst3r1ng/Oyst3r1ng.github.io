@@ -6,7 +6,7 @@ categories: [Windows 逆向]
 
 这里直接上代码了，再顺便做个实验验证一下
 
-这个是main函数里面的内容，懒得改上个实验那些代码了，也说明了，做个附加小实验
+这个是 main 函数里面的内容，懒得改上个实验那些代码了，也说明了，做个附加小实验
 
 ```
 #include <iostream>
@@ -42,7 +42,7 @@ int main()
 }
 ```
 
-然后函数功能的实现写在了那个PeFuction.c里面，不懂的看上篇文章，然后记得加头文件哈
+然后函数功能的实现写在了那个 PeFuction.c 里面，不懂的看上篇文章，然后记得加头文件哈
 
 ```
 int ImageAddressToFileAddress(char* FileBufferPoint, int ImageAddress) {
@@ -84,21 +84,21 @@ int ImageAddressToFileAddress(char* FileBufferPoint, int ImageAddress) {
 }
 ```
 
-然后做个小实验，就拿.text段来举例
+然后做个小实验，就拿.text 段来举例
 
 ![](Screenshot_6.png)
 
-然后在代码中将参数传成0x00401010，看结果
+然后在代码中将参数传成 0x00401010，看结果
 
 ![](Screenshot_7-1024x498.png)
 
-然后分别用二进制编辑器查看在硬盘上的exe和在内存中的exe
+然后分别用二进制编辑器查看在硬盘上的 exe 和在内存中的 exe
 
 ![](Screenshot_5-1024x693.png)
 
 ![此图片的alt属性为空；文件名为Screenshot_1-2-1024x564.png](image-52.png)
 
-那可能有人就会说了，这不管文件还是内存对齐都是1000h啊，那我找一个对齐不一样的，就拿我们都在用Everything.exe来看
+那可能有人就会说了，这不管文件还是内存对齐都是 1000h 啊，那我找一个对齐不一样的，就拿我们都在用 Everything.exe 来看
 
 ![](Screenshot_1-3-1024x449.png)
 
@@ -108,4 +108,4 @@ int ImageAddressToFileAddress(char* FileBufferPoint, int ImageAddress) {
 
 ![](Screenshot_4-1024x439.png)
 
-OKK了这个代码肯定是没有问题的，那演示就到这里了哈
+OKK 了这个代码肯定是没有问题的，那演示就到这里了哈
