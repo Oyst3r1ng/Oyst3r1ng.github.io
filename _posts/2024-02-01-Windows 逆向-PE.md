@@ -8,7 +8,7 @@ categories: [Windows 逆向]
 
 终于开了PE了，学好这个之后就可以写一个PE的小工具，这回笔记基本上就把PE的整体给说完了，作业的话打算之后专门出一篇文章说PE这方面的代码吧
 
-![](images/image-38-1024x478.png)
+![](image-38-1024x478.png)
 
 ## 学习过程
 
@@ -27,7 +27,7 @@ tip：
 
 硬盘对齐内存对齐粒度不相等
 
-![](images/image-21-1024x896.png)
+![](image-21-1024x896.png)
 
 - 优点：节省了硬盘空间
 
@@ -35,7 +35,7 @@ tip：
 
 硬盘对齐内存对齐粒度相等
 
-![](images/image-22-1024x858.png)
+![](image-22-1024x858.png)
 
 - 优点：由于对齐粒度一样了，当把文件从硬盘装入到内存中时可以省去很多运算，只需要确定好首地址
 
@@ -43,7 +43,7 @@ tip：
 
 ### PE文件的结构
 
-![](images/image-23-1024x918.png)
+![](image-23-1024x918.png)
 
 #### DOS头
 
@@ -107,7 +107,7 @@ struct _IMAGE_FILE_HEADER {
 
 - Characteristics：16位的每个位都表示不同的特征，可执行文件值一般都是0x010F，即读完后16位二进制数中从低到高第1、2、3、4、9位上的值为1，其他位为0，下面是每一位的1含义
 
-![](images/image-24.png)
+![](image-24.png)
 
 #### 可选PE头
 
@@ -165,7 +165,7 @@ struct _IMAGE_OPTIONAL_HEADER {
 
 内存中的程序入口地址：使用OD打开文件（完全模拟文件运行时加载到内存中的状态，不是硬盘上的状态）。所以OD打开一个可执行文件后，会在程序入口地址处设置断点，让程序停下来，这里就是文件在内存中真正的入口点。即文件装入到4GB虚拟内存中的起始基地址 +相对于文件首地址的偏移的程序入口地址，即imagebase + AddressOfEntryPoint
 
-![](images/image-25-1024x651.png)
+![](image-25-1024x651.png)
 
 - BaseOfCode：顾名思义，就是指着代码开始的基址，但这个是可以改的，
 
@@ -182,17 +182,17 @@ struct _IMAGE_OPTIONAL_HEADER {
 因为内存保护！我们前面学过，free一个动态分配内存的指针后，一定要将指针 = NULL，那么指针等于NULL后，这个指针指向的地址就是0x0，那么如果此时访问此指针指向的数据，或者向后偏移一定大小的范围内的数据，编译器会立马报错。所以4GB内存中开始空出来一些内存空间就是为了内存保护的
 ```
 
-![](images/image-26-1024x970.png)
+![](image-26-1024x970.png)
 
 但是在64位上会出现这样的情况
 
-![](images/35ff65d9c1c1d16fe688ebdf36d01d58-1024x554.png)
+![](35ff65d9c1c1d16fe688ebdf36d01d58-1024x554.png)
 
 那个1400是硬盘上的，但是加载到内存里面就是那个7ff什么什么的，xp默认一直是1000
 
-![](images/image-30-1024x951.png)
+![](image-30-1024x951.png)
 
-![](images/8ABBBDDBF399DFF099A45FD092C2C520.png)
+![](8ABBBDDBF399DFF099A45FD092C2C520.png)
 
 - SectionAlignment：内存对齐，可执行文件运行时装入4GB虚拟内存中的对齐粒度，一般为0x1000字节
 
@@ -204,11 +204,11 @@ struct _IMAGE_OPTIONAL_HEADER {
 
 举例：假如一个可执行文件的所有头和节表加起来大小为0x1800字节，但是第一个节表开始位置应该是0x2000，因为要满足文件对齐粒度0x1000
 
-![](images/image-27.png)
+![](image-27.png)
 
 剩下的就不太重要了，直接给个图片
 
-![](images/image-28-1024x366.png)
+![](image-28-1024x366.png)
 
 #### 节表
 
@@ -243,9 +243,9 @@ typedef struct _IMAGE_SECTION_HEADER{
 
 一个节对应一个节表，即一个节表由一个结构体类型的节表记录信息。节表数据紧接着可选PE头数据后面，节表中会循环上述的结构，因为一个节就对应一个结构，且这些数据都是挨着顺序存放的
 
-![](images/image-31-765x1024.png)
+![](image-31-765x1024.png)
 
-![](images/image-32-1024x483.png)
+![](image-32-1024x483.png)
 
 - Name\[IMAGE\_SIZEOF\_SHORT\_NAME\]：8个字节，一般情况下是以"\\0"结尾的ASCII码来表示节的名称，名字可以自定义（一般是编译器加的）。我们知道数组元素是从最后一个元素倒着入栈的，所以从低地址往高地址分别是从数组的第一个元素到最后一个元素
 
@@ -253,23 +253,23 @@ typedef struct _IMAGE_SECTION_HEADER{
 
 为什么定义成联合体，因为有些编译器或者软件喜欢用PhysicalAddress这个变量名表示，有些又喜欢用VirtualSize这个变量名表示，那么为了两个都可以使用，而且共用一个内存不占用多余的内存，就使用联合体，想使用PhysicalAddress就用Misc.PhysicalAddress；想使用VirtualSize就用Misc.VirtualSize
 
-![](images/image-33-466x1024.png)
+![](image-33-466x1024.png)
 
 - VirtualAddress:此节在内存中的偏移起始地址：所以加上imagebase才是exe文件运行时，此节在4GB内存中的地址，大小为4字节
 
-![](images/image-34-459x1024.png)
+![](image-34-459x1024.png)
 
 - SizeOfRawData：此节在文件中对齐后的尺寸：4字节。即文件在硬盘上时，文件对齐后此节的大小
 
-![](images/image-35.png)
+![](image-35.png)
 
 - PointerToRawData：此节文件对齐后在文件中的偏移地址：即表示文件在硬盘上时，经过文件对齐后，此节相对于文件起始地址的偏移量，一定是文件对齐的整数倍。4字节
 
-![](images/image-36-332x1024.png)
+![](image-36-332x1024.png)
 
 - Characteristics：节的属性，同样的，4字节（32位），每一位都表示此节的一个属性。我们一般关注的属性是是否可读、可写、可执行
 
-![](images/image-37-1024x366.png)
+![](image-37-1024x366.png)
 
 举个例子
 
@@ -277,7 +277,7 @@ typedef struct _IMAGE_SECTION_HEADER{
 
 ### 可执行文件的读取到装入内存过程
 
-![](images/image-29-1024x678.png)
+![](image-29-1024x678.png)
 
 1.文件数据读到FileBuffer，这个也就是上篇文章做的作业，
 

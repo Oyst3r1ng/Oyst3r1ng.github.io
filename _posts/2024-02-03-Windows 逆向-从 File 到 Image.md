@@ -30,7 +30,7 @@ SizeOfRawData不一定大于Misc.VirtualSize，大家可能会觉得前者是对
 
 ### File复制到Image的流程
 
-![](images/image-39-1024x824.png)
+![](image-39-1024x824.png)
 
 - 先在硬盘上找一个可执行文件，将文件的数据复制到内存中，即FileBuffer中（前面的练习做过很多次了）
 
@@ -58,7 +58,7 @@ SizeOfRawData不一定大于Misc.VirtualSize，大家可能会觉得前者是对
 
 具体的步骤就是下面这个图片里面的内容
 
-![](images/image-40-1024x606.png)
+![](image-40-1024x606.png)
 
 ## 作业
 

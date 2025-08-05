@@ -86,26 +86,26 @@ int ImageAddressToFileAddress(char* FileBufferPoint, int ImageAddress) {
 
 然后做个小实验，就拿.text段来举例
 
-![](images/Screenshot_6.png)
+![](Screenshot_6.png)
 
 然后在代码中将参数传成0x00401010，看结果
 
-![](images/Screenshot_7-1024x498.png)
+![](Screenshot_7-1024x498.png)
 
 然后分别用二进制编辑器查看在硬盘上的exe和在内存中的exe
 
-![](images/Screenshot_5-1024x693.png)
+![](Screenshot_5-1024x693.png)
 
-![此图片的alt属性为空；文件名为Screenshot_1-2-1024x564.png](images/image-52.png)
+![此图片的alt属性为空；文件名为Screenshot_1-2-1024x564.png](image-52.png)
 
 那可能有人就会说了，这不管文件还是内存对齐都是1000h啊，那我找一个对齐不一样的，就拿我们都在用Everything.exe来看
 
-![](images/Screenshot_1-3-1024x449.png)
+![](Screenshot_1-3-1024x449.png)
 
-![](images/Screenshot_2-2-1024x481.png)
+![](Screenshot_2-2-1024x481.png)
 
-![](images/Screenshot_3-1024x279.png)
+![](Screenshot_3-1024x279.png)
 
-![](images/Screenshot_4-1024x439.png)
+![](Screenshot_4-1024x439.png)
 
 OKK了这个代码肯定是没有问题的，那演示就到这里了哈
