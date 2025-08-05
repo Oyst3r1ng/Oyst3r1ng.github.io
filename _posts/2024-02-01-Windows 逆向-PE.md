@@ -47,7 +47,7 @@ tip：
 
 #### DOS头
 
-```C
+```
 struct _IMAGE_DOS_HEADER {
     0x00 WORD e_magic;  *
     0x02 WORD e_cblp;
@@ -85,7 +85,7 @@ DWORD Signature;
 
 #### 标准PE头
 
-```C
+```
 struct _IMAGE_FILE_HEADER {
     0x00 WORD Machine;  *
     0x02 WORD NumberOfSections;  *
@@ -111,7 +111,7 @@ struct _IMAGE_FILE_HEADER {
 
 #### 可选PE头
 
-```C
+```
 struct _IMAGE_OPTIONAL_HEADER {
     0x00 WORD Magic; *
     0x02 BYTE MajorLinkerVersion;
@@ -222,7 +222,7 @@ struct _IMAGE_OPTIONAL_HEADER {
 
 - 然后看一下它的结构
 
-```C
+```
 #define IMAGE_SIZEOF_SHORT_NAME 8 //宏定义	
 typedef struct _IMAGE_SECTION_HEADER{
     BYTE Name[IMAGE_SIZEOF_SHORT_NAME]; *   //每一个节都可以取一个名字，最大长度为8字节

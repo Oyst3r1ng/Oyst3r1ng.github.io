@@ -8,7 +8,7 @@ categories: [Windows 逆向]
 
 这个是main函数里面的内容，懒得改上个实验那些代码了，也说明了，做个附加小实验
 
-```C
+```
 #include <iostream>
 #include "PeFuction.h"
 
@@ -44,7 +44,7 @@ int main()
 
 然后函数功能的实现写在了那个PeFuction.c里面，不懂的看上篇文章，然后记得加头文件哈
 
-```C
+```
 int ImageAddressToFileAddress(char* FileBufferPoint, int ImageAddress) {
 	//ImageAddressToFileAddress：将ImageBuffer里面的节地址转换为对应的FileBuffer的节地址
 	//参数说明：
