@@ -179,7 +179,7 @@ echo serialize($w);
 
 还有一点绕过姿势，简单记录
 
-```
+```php
  class G00d{
         public $shell = "system";
         public $cmd = 'dir ../../../../../';#查看文件名

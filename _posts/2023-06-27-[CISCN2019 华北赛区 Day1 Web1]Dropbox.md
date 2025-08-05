@@ -28,7 +28,7 @@ categories: [ctf_wp]
 
 3.我审计源码的过程更喜欢是按照功能点流程去一步一步看代码，这里就不说这个 register.php 的源码了，一般这就是用 sql 语句往数据库里面插内容，这题也不例外，然后咱们就从 login.php 开始审计
 
-```
+```php
 <?php
 include "class.php";
 
@@ -58,7 +58,7 @@ if (isset($_POST["username"]) && isset($_POST["password"])) {
 
 上面这个源码包含了一个 class.php，其实大家仔细看看其他文件，会发现每一个文件都会包含这个 class.php 的，这个文件肯定是个核心文件，然后第一个 if 没个啥，看第二个 if 里面把一个类给实例化成了一个对象，咱们来看看 class 中这个 User 类
 
-```
+```php
 class User {
     public $db;
 
@@ -116,7 +116,7 @@ class User {
 
 4.然后登录了之后，咱们就进入到了首页，接下来再审计这个 index.php
 
-```
+```php
 <?php
 session_start();
 if (!isset($_SESSION['login'])) {
@@ -164,7 +164,7 @@ $a->Size();
 
 不看别的，果然我一开始想的这个右上角出现了你好 admin 完全没有与数据库交互，是通过这个显示出来的 ‘<?php echo $\_SESSION\['username'\]?>’，然后再看这个也是包含一个 class.php 的，然后实例化了 FileList 这个类，然后访问这个类里面的 Name（）和 Size（）方法，这俩方法很明显就是网站页面上面显示的文件的两个属性了，和上面一样，咱们也是一步一步的去分析
 
-```
+```php
 class FileList {
     private $files;
     private $results;
@@ -219,7 +219,7 @@ class FileList {
 
 一开始的话，还是去触发构造函数，注意这里的属性都是数组的形式，然后 sandir 返回的是这个 sandbox 这个文件夹下的所有文件（就是咱们页面上面显示的那几个文件），然后会把.和..这两个文件给删掉，然后是一个 foreach 循环，是先实例化一个类，咱们也是看一下这个 File 类
 
-```
+```php
 class File {
     public $filename;
 
@@ -261,7 +261,7 @@ class File {
 
 5.OK 相信大家看完以上的内容肯定对这个源码的逻辑有了清晰的认识，咱们现在换一个角度，从攻击者的角度看看怎么去利用，这里看到 File 里面有个 close（）函数，这里面这个函数很危险的，感觉是个反序列化，因为这 pop 链已经很明显了，这个 close 函数就是一开始我起疑心的点，这下这俩刚好联系起来了，如果这题是个常规的反序列化利用的话，我写一下 exp
 
-```
+```php
 <?php
 class User {
     public $db;
@@ -290,7 +290,7 @@ php 一大部分的文件系统函数在通过 phar://伪协议解析 phar 文�
 
 ![](image-20231104183235152-1024x483.png)
 
-```
+```php
 <?php
 Class User{
     public $db;
